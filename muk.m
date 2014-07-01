@@ -5,9 +5,10 @@ function coeff = muk(K1, K2, mu1, mu2, hk, xlim, ylim)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/14/2014
+% Updated 6/30/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Precompute K*pi/L
 k1 = K1*pi/(xlim(2)-xlim(1));
 k2 = K2*pi/(ylim(2)-ylim(1));
 

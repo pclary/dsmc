@@ -5,12 +5,13 @@ function muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/14/2014
+% Updated 6/30/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 xlim = [min(x1(:)), max(x1(:))];
 ylim = [min(x2(:)), max(x2(:))];
 
+% Reconstruct the particle distribution on a grid
 mu = zeros(size(x1));
 for K1 = 0:K
     for K2 = 0:K
@@ -18,9 +19,11 @@ for K1 = 0:K
     end
 end
 
+% Take the log of the distribution and renormalize
 logmu = max(real(log(mu/lambda*(xlim(2)-xlim(1))*(ylim(2)-ylim(1)))), 0);
 logmu = logmu/trapz(x2(:, 1), trapz(x1(1, :), logmu, 2));
 
+% Compute the new fourier coefficients for the log distribution
 muks = zeros(K+1);
 for i = 1:K+1
     for j = 1:K+1

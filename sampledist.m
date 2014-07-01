@@ -4,9 +4,11 @@ function [xp, yp] = sampledist(dist, x, y, n, sampfun)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/23/2014
+% Updated 6/30/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Sample using the supplied sample function or the default halton sequence;
+% Samples are points in the domain [0, 1] x [0, 1]
 if nargin < 5
     s1 = halton(2, n);
     s2 = halton(3, n);
@@ -15,6 +17,8 @@ else
     s2 = sampfun(n);
 end
 
+% Construct an approximate 2D cumulative probability density function
+% respresenting the distribution
 w = cumtrapz(trapz(dist, 2));
 if w(end) ~= 0
     w = w/w(end);
@@ -31,6 +35,8 @@ end
 xp = zeros(n, 1);
 yp = zeros(n, 1);
 
+% Map points in [0, 1] x [0, 1] to cartesian points using the cumulative
+% probability distribution function; uses interpolation
 for k = 1:n
     i = find(w > s1(k), 1);
     f = (s1(k)-w(i-1))/(w(i)-w(i-1));

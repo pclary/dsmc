@@ -4,15 +4,18 @@ function out = B(K, xt1, xt2, hks, muks, xlim, ylim)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/14/2014
+% Updated 6/30/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 N = size(xt1, 2);
-
 sk = @(K1, K2) ck(K1, K2, xt1, xt2, hks(K1+1, K2+1), xlim, ylim) - muks(K1+1, K2+1);
+
+% Calculate values of sk and lambda for each fourier term used
 [K2, K1] = meshgrid(0:K, 0:K);
 sks = arrayfun(sk, K1, K2);
 Las = 1./(1 + K1.^2 + K2.^2).^(3/2);
+
+% Add up fourier terms to get B vector for each agent
 out = zeros(2, N);
 for n1 = 1:K+1
     for n2 = 1:K+1
