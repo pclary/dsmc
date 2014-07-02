@@ -9,7 +9,7 @@ function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(K, v1, v2, h, 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/14/2014
+% Updated 6/30/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 xlim = [min(x1(:)), max(x1(:))];

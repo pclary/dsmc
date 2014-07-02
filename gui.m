@@ -25,7 +25,7 @@ function varargout = gui(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/23/2014
+% Updated 7/1/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Edit the above text to modify the response to help gui
@@ -637,11 +637,13 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', char(val));
 handles.settings.v1 = val;
-[mu, x1, x2] = generatemu(handlea);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
-rendermu(handles);
+if strcmp(handles.settings.mutype, 'Mesohyperbolicity')
+    [mu, x1, x2] = generatemu(handles);
+    handles.settings.mu = mu;
+    handles.settings.x1 = x1;
+    handles.settings.x2 = x2;
+    rendermu(handles);
+end
 guidata(hObject, handles);
 
 function edit_v2_Callback(hObject, eventdata, handles)
@@ -650,11 +652,13 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', char(val));
 handles.settings.v2 = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
-rendermu(handles);
+if strcmp(handles.settings.mutype, 'Mesohyperbolicity')
+    [mu, x1, x2] = generatemu(handles);
+    handles.settings.mu = mu;
+    handles.settings.x1 = x1;
+    handles.settings.x2 = x2;
+    rendermu(handles);
+end
 guidata(hObject, handles);
 
 function edit_agentuncertainty_Callback(hObject, eventdata, handles)
