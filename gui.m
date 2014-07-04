@@ -30,7 +30,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 13-Jun-2014 12:42:46
+% Last Modified by GUIDE v2.5 03-Jul-2014 23:07:21
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,6 +71,7 @@ guidata(hObject, handles);
 set(handles.tab_single,'Visible','On');
 set(handles.tab_params,'Visible','Off');
 set(handles.tab_multiple,'Visible','Off');
+set(handles.tab_output,'Visible','Off');
 
 set(handles.panel_gaussian,'Visible','Off');
 set(handles.panel_mh,'Visible','Off');
@@ -475,16 +476,25 @@ switch eventdata.NewValue
         set(handles.tab_params,'Visible','On');
         set(handles.tab_single,'Visible','Off');
         set(handles.tab_multiple,'Visible','Off');
+        set(handles.tab_output,'Visible','Off');
         colormap(mhcolormap(256));
     case handles.tabradio_single
         set(handles.tab_params,'Visible','Off');
         set(handles.tab_single,'Visible','On');
         set(handles.tab_multiple,'Visible','Off');
+        set(handles.tab_output,'Visible','Off');
         colormap(jet(256));
     case handles.tabradio_multiple
         set(handles.tab_params,'Visible','Off');
         set(handles.tab_single,'Visible','Off');
         set(handles.tab_multiple,'Visible','On');
+        set(handles.tab_output,'Visible','Off');
+        colormap(jet(256));
+    case handles.tabradio_output
+        set(handles.tab_params,'Visible','Off');
+        set(handles.tab_single,'Visible','Off');
+        set(handles.tab_multiple,'Visible','Off');
+        set(handles.tab_output,'Visible','On');
         colormap(jet(256));
 end
 
