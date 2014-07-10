@@ -1,11 +1,11 @@
-function [Jdet, x0, y0, x, y] = mesohyperbolicity(vx, vy, xlim, ylim, T, ngrid)
+function [Jdet, x0, y0, x, y] = mesohyperbolicity(vx, vy, xlim, ylim, t0, T, ngrid)
 %MESOHYPERBOLICITY Calculates the mesohyperbolicity of a 2D velocity field
 %   Returns a grid of the values of det(grad(V*))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/29/2014
-% Updated 6/30/2014
+% Updated 7/10/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 x = linspace(xlim(1), xlim(2), ngrid);
@@ -18,7 +18,7 @@ y0 = y;
 % Can be adjusted to take more steps if precision is needed over long times
 % in a complex velocity field
 nsteps = 10;
-tvals = linspace(0, T, nsteps+1);
+tvals = linspace(t0, t0 + T, nsteps+1);
 dt = T/nsteps;
 
 for t = tvals

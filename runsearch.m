@@ -1,7 +1,5 @@
-function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(K, v1, v2, h, x1, x2, mu, nsamplepts, ...
-    xt1i, xt2i, umax, algorithm, ntargets, findradius, findtimeconst, maxtime, ...
-    lambda, axmain, gifname, axaux, axmu, axcov, aborthandle, stopallfound, ...
-    pausebutton, au, tu, spherical)
+function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(settings, ...
+    outputsettings, ax, aborthandle, pausebutton)
 %RUNSEARCH Runs a search using the specified algorithm
 %   Returns the time at which each target was found and a vector of the
 %   number of remaining targets at each detection time
@@ -9,11 +7,45 @@ function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(K, v1, v2, h, 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/30/2014
+% Updated 7/10/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-xlim = [min(x1(:)), max(x1(:))];
-ylim = [min(x2(:)), max(x2(:))];
+% Unpack settings
+xlim = settings.xlim;
+ylim = settings.ylim;
+K = settings.K;
+v1 = settings.v1;
+v2 = settings.v2;
+h = settings.h;
+x1 = settings.x1;
+x2 = settings.x2;
+mu = settings.mu;
+nsamplepts = settings.nsamplepts;
+umax = settings.umax;
+algorithm = settings.algorithm;
+ntargets = settings.ntargets;
+findradius = settings.findradius;
+findtimeconst = settings.findtimeconst;
+maxtime = settings.tstop;
+lambda = settings.lambda;
+stopallfound = settings.stopallfound;
+au = settings.agentuncertainty;
+tu = settings.targetuncertainty;
+spherical = settings.spherical;
+
+% Append (1), (2), etc to output file names to avoid overwriting old output
+if ~outputsettings.overwrite
+    outputsettings.main.filename = ...
+        getunusedfilename(outputsettings.main.filename);
+    outputsettings.convergence.filename = ...
+        getunusedfilename(outputsettings.convergence.filename);
+    outputsettings.mu.filename = ...
+        getunusedfilename(outputsettings.mu.filename);
+    outputsettings.coverage.filename = ...
+        getunusedfilename(outputsettings.coverage.filename);
+    outputsettings.mesohyperbolicity.filename = ...
+        getunusedfilename(outputsettings.mesohyperbolicity.filename);
+end
 
 % Precompute Fourier basis functions
 fks = cell(K + 1);
@@ -43,36 +75,23 @@ if strcmp(algorithm, 'Lawnmower')
     xt2c = xt2i;
 end
 
-fcount = 0;
-if h > 1
-    frate = 1/30;
-elseif h > 1/30
-    frate = h;
-elseif h > 1/60
-    frate = h/2;
-else
-    frate = 1/30;
-end
+fcount = [0, 0, 0, 0, 0];
 stepnum = size(xt1, 1);
 t = 0;
 co = get(gca,'ColorOrder');
 
 % Used for abort button signalling with the GUI
-if nargin >= 23 && ~isempty(aborthandle)
+if ~isempty(aborthandle)
     abort = @() getappdata(aborthandle, 'Abort');
 else
     abort = @() 0;
 end
 
 % Used for pause button signalling with the GUI
-if nargin >= 25 && ~isempty(pausebutton)
+if ~isempty(pausebutton)
     paused = @() get(pausebutton, 'Value');
 else
     paused = @() 0;
-end
-
-if nargin < 24 || isempty(stopallfound)
-    stopallfound = 0;
 end
 
 % Step through simulation until a stop condition is met
@@ -131,90 +150,80 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     foundtargets = [foundtargets; found];
     findtimes = [findtimes; t*ones(numel(found), 1)];
     
+    % Calculate convergence metric
+    sk = @(K1, K2) ck(K1, K2, xt1(1:stepnum, :), xt2(1:stepnum, :), ...
+        hks(K1+1, K2+1), xlim, ylim) - muks(K1+1, K2+1);
+    phi = 0;
+    for K1 = 0:K
+        for K2 = 0:K
+            La = 1/(1 + K1^2 + K2^2)^(3/2);
+            phi = phi + La*sk(K1, K2)^2;
+        end
+    end
+    phi2 = [phi2; phi];
+    
+    
     % Plot particles and trajectories
-    if nargin >= 18 && ~isempty(axmain)
-        plot(axmain, mu1, mu2, '.b', 'MarkerSize', 2);
-        set(axmain, 'ColorOrder', co(2:end, :), 'NextPlot', 'replacechildren');
-        hold(axmain, 'on');
-        plot(axmain, mu1tar, mu2tar, 'co', 'MarkerSize', 5, 'LineWidth', 2);
-        plot(axmain, mu1tar(foundtargets), mu2tar(foundtargets), 'mo', ...
-            'MarkerSize', 5, 'LineWidth', 2);
-        
-        plot(axmain, [xt1(1, :); xt1(1:stepnum, :)], [xt2(1, :); xt2(1:stepnum, :)]);
-        plot(axmain, [xt1(stepnum, :); xt1(stepnum, :)], ...
-            [xt2(stepnum, :); xt2(stepnum, :)], '.', 'MarkerSize', 15);
-        
-        hold(axmain, 'off');
-        axis(axmain, 'equal');
-        axis(axmain, [xlim, ylim]);
-        title(axmain, sprintf('t = %.2f s', t));
+    if isfield(ax, 'main') && ~isempty(ax.main)
+        plotmain(ax.main, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co);
     end
     
-    % Save trajectory animation
-    if nargin >= 19 && ~isempty(gifname) && numel(gifname) > 0 && t >= fcount*frate
-        frame=getframe(axmain);
-        im=frame2im(frame);
-        [imind,map]=rgb2ind(im,256);
-        if fcount == 0
-            imwrite(imind,map,gifname,'DelayTime',frate,'LoopCount',inf);
-        else
-            imwrite(imind,map,gifname, 'DelayTime',frate, 'WriteMode', 'append');
-        end
-        fcount = fcount+1;
-    end
-
     % Plot convergence metric
-    if nargin >= 20 && ~isempty(axaux)
-        sk = @(K1, K2) ck(K1, K2, xt1(1:stepnum, :), xt2(1:stepnum, :), ...
-            hks(K1+1, K2+1), xlim, ylim) - muks(K1+1, K2+1);
-        phi = 0;
-        for K1 = 0:K
-            for K2 = 0:K
-                La = 1/(1 + K1^2 + K2^2)^(3/2);
-                phi = phi + La*sk(K1, K2)^2;
-            end
-        end
-        phi2 = [phi2; phi];
-        loglog(axaux, phi2);
-        title(axaux, 'Convergence');
-        xlabel(axaux, 'Steps');
-        ylabel(axaux, '\phi^2');
+    if isfield(ax, 'convergence') && ~isempty(ax.convergence)
+        plotconvergence(ax.convergence, phi2);
     end
-
+    
     % Plot log density of particles
-    if nargin >= 21 && ~isempty(axmu)
-        mur = zeros(size(mu));
-        for K1 = 0:K
-            for K2 = 0:K
-                mur = mur + fks{K1+1, K2+1}*muks(K1+1, K2+1);
-            end
-        end
-        mur = mur / trapz(x2(:, 1), trapz(x1(1, :), mur, 2));
-        surf(axmu, x1, x2, mur, 'EdgeColor', 'none');
-        axis(axmu, 'equal');
-        axis(axmu, [xlim, ylim]);
-        title(axmu, 'Log(Particle distribution)');
-        caxis(axmu, sort([0, max(max(mur))]));
+    if isfield(ax, 'mu') && ~isempty(ax.mu)
+        plotmu(ax.mu, mu, fks, muks, K, x1, x2, xlim, ylim);
     end
     
     % Plot trajectory density
-    if nargin >= 22 && ~isempty(axcov)
-        c = zeros(size(mu));
-        for K1 = 0:K
-            for K2 = 0:K
-                c = c + fks{K1+1, K2+1}*ck(K1, K2, xt1(1:stepnum, :), ...
-                    xt2(1:stepnum, :), hks(K1+1, K2+1), xlim, ylim);
-            end
-        end
-        c = c / trapz(x2(:, 1), trapz(x1(1, :), c, 2));
-        surf(axcov, x1, x2, c, 'EdgeColor', 'none');
-        axis(axcov, 'equal');
-        axis(axcov, [xlim, ylim]);
-        title(axcov, 'Coverage density');
-        caxis(axcov, [0, max(max(c))]);
+    if isfield(ax, 'coverage') &&  ~isempty(ax.coverage)
+        plotcoverage(ax.coverage, mu, fks, hks, xt1, xt2, x1, x2, xlim, ylim, stepnum);
     end
     
     drawnow;
+    
+    % Save output figures
+    plotfun = {...
+        @(ax) plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co), ...
+        @(ax) plotconvergence(ax, phi2), ...
+        @(ax) plotmu(ax, mu, fks, muks, K, x1, x2, xlim, ylim), ...
+        @(ax) plotcoverage(ax, mu, fks, hks, xt1, xt2, x1, x2, xlim, ylim, stepnum), ...
+        @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, outputsettings.mesohyperbolicity.T, ngrid)};
+    
+    osfigs = {outputsettings.main, outputsettings.convergence, ...
+        outputsettings.mu, outputsettings.coverage, ...
+        outputsettings.mesohyperbolicity};
+    
+    for i = 1:numel(osfigs)
+        os = osfigs(i);
+        if os.enabled && t >= fcount(i)*os.rate
+            fcount(i) = fcount(i) + 1;
+            f = figure;
+            set(f, 'Visible', 'off');
+            set(f, 'Position', [0, 0, os.w, os.h]);
+            plotfun(gca);
+            drawnow;
+            if os.animation
+                frame = getframe(gca);
+                im = frame2im(frame);
+                [imind, map] = rgb2ind(im,256);
+                if fcount == 0
+                    imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'LoopCount', inf);
+                else
+                    imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'WriteMode', 'append');
+                end
+            else
+                if ~exist(os.filename, 'file')
+                    mkdir(os.filename);
+                end
+                saveas(f, [os.filename, '/', sprintf('%d.png', fcount(i))], 'png');
+            end
+            delete(f);
+        end
+    end
     
     % Pause
     while paused()
@@ -222,9 +231,101 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     end
 end
 
-set(axmain, 'ColorOrder', co);
+set(gca, 'ColorOrder', co);
 
 targets = ntargets:-1:ntargets-numel(findtimes)+1;
 
+
+function plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co)
+
+plot(ax, mu1, mu2, '.b', 'MarkerSize', 2);
+set(ax, 'ColorOrder', co(2:end, :), 'NextPlot', 'replacechildren');
+hold(ax, 'on');
+plot(ax, mu1tar, mu2tar, 'co', 'MarkerSize', 5, 'LineWidth', 2);
+plot(ax, mu1tar(foundtargets), mu2tar(foundtargets), 'mo', ...
+    'MarkerSize', 5, 'LineWidth', 2);
+
+plot(ax, [xt1(1, :); xt1(1:stepnum, :)], [xt2(1, :); xt2(1:stepnum, :)]);
+plot(ax, [xt1(stepnum, :); xt1(stepnum, :)], ...
+    [xt2(stepnum, :); xt2(stepnum, :)], '.', 'MarkerSize', 15);
+
+hold(ax, 'off');
+axis(ax, 'equal');
+axis(ax, [xlim, ylim]);
+title(ax, sprintf('t = %.2f s', t));
+
+
+function plotconvergence(ax, phi2)
+
+loglog(ax, phi2);
+title(ax, 'Convergence');
+xlabel(ax, 'Steps');
+ylabel(ax, '\phi^2');
+
+
+function plotmu(ax, mu, fks, muks, K, x1, x2, xlim, ylim)
+
+mur = zeros(size(mu));
+for K1 = 0:K
+    for K2 = 0:K
+        mur = mur + fks{K1+1, K2+1}*muks(K1+1, K2+1);
+    end
+end
+mur = mur / trapz(x2(:, 1), trapz(x1(1, :), mur, 2));
+surf(ax, x1, x2, mur, 'EdgeColor', 'none');
+axis(ax, 'equal');
+axis(ax, [xlim, ylim]);
+title(ax, 'Log(Particle distribution)');
+caxis(ax, sort([0, max(max(mur))]));
+
+
+function plotcoverage(ax, mu, fks, hks, xt1, xt2, x1, x2, xlim, ylim, stepnum)
+
+c = zeros(size(mu));
+for K1 = 0:K
+    for K2 = 0:K
+        c = c + fks{K1+1, K2+1}*ck(K1, K2, xt1(1:stepnum, :), ...
+            xt2(1:stepnum, :), hks(K1+1, K2+1), xlim, ylim);
+    end
+end
+c = c / trapz(x2(:, 1), trapz(x1(1, :), c, 2));
+surf(ax, x1, x2, c, 'EdgeColor', 'none');
+axis(ax, 'equal');
+axis(ax, [xlim, ylim]);
+title(ax, 'Coverage density');
+caxis(ax, [0, max(max(c))]);
+
+
+function plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, T, ngrid)
+
+[mh, x0, y0] = mesohyperbolicity(vx, vy, xlim, ylim, t, T, ngrid);
+surf(ax, x0, y0, mh, 'EdgeColor', 'none');
+axis(ax, 'equal');
+axis(ax, [xlim, ylim]);
+title(ax, 'Mesohyperbolicity');
+colormap(ax, mhcolormap(256));
+
+
+function filename = getunusedfilename(filename)
+% Appends (1), (2), etc to filenames if the file already exists
+
+originalfn = filename;
+
+if numel(filename) > 0 && exist(filename, 'file')
+    i = 1;
+    while exist(filename, 'file')
+        filename = originalfn;
+        k = strfind(filename, '.');
+        if numel(k) == 0
+            k = numel(filename) + 1;
+        end
+        k = k(end);
+        if k > 1
+            filename = sprintf('%s (%d)%s', filename(1:k-1), i, filename(k:end));
+        else
+            filename = sprintf('(%d)%s', i, filename(k:end));
+        end
+        i = i + 1;
+    end
 end
 

@@ -25,12 +25,12 @@ function varargout = gui(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 7/1/2014
+% Updated 7/10/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 03-Jul-2014 23:07:21
+% Last Modified by GUIDE v2.5 05-Jul-2014 22:39:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -179,29 +179,6 @@ set(handles.edit_v2, 'String', char(settings.v2));
 set(handles.edit_agentuncertainty, 'String', num2str(settings.agentuncertainty));
 set(handles.edit_targetuncertainty, 'String', num2str(settings.targetuncertainty));
 
-function filename = getunusedfilename(filename)
-% Appends (1), (2), etc to filenames if the file already exists
-
-originalfn = filename;
-
-if numel(filename) > 0 && exist(filename, 'file') == 2
-    i = 1;
-    while exist(filename, 'file') == 2
-        filename = originalfn;
-        k = strfind(filename, '.');
-        if numel(k) == 0
-            k = numel(filename) + 1;
-        end
-        k = k(end);
-        if k > 1
-            filename = sprintf('%s (%d)%s', filename(1:k-1), i, filename(k:end));
-        else
-            filename = sprintf('(%d)%s', i, filename(k:end));
-        end
-        i = i + 1;
-    end
-end
-
 function [vx, vy] = getvelfunction(handles)
 % Get the appropriate velocity functions for expression mode and data
 % interpolation mode
@@ -236,7 +213,7 @@ elseif strcmp(settings.mutype, 'Gaussian')
 elseif strcmp(settings.mutype, 'Mesohyperbolicity')
     [vx, vy] = getvelfunction(handles);
     mh = mesohyperbolicity(vx, vy, settings.xlim, ...
-        settings.ylim, settings.mhT, settings.ngrid);
+        settings.ylim, 0, settings.mhT, settings.ngrid);
     mu = zeros(size(x1));
     if settings.mhlower < settings.mhupper
         mu(mh >= settings.mhlower & mh <= settings.mhupper) = 1;
@@ -261,7 +238,7 @@ if strcmp(settings.mutype, 'Mesohyperbolicity')
     [x1, x2] = meshgrid(x1, x2);
     [vx, vy] = getvelfunction(handles);
     mh = mesohyperbolicity(vx, vy, settings.xlim, ...
-        settings.ylim, settings.mhT, settings.ngrid);
+        settings.ylim, 0, settings.mhT, settings.ngrid);
     surf(handles.axes_mh, x1, x2, mh, 'EdgeColor', 'none');
     axis(handles.axes_mh, 'equal');
     axis(handles.axes_mh, [settings.xlim, settings.ylim]);
@@ -287,9 +264,8 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     cla(handles.axes_scov);
     
     settings = handles.settings;
+    outputsettings = handles.outputsettings;
     data = handles.data;
-    
-    gifname = getunusedfilename(settings.gifname);
     
     [vx, vy] = getvelfunction(handles);
     if settings.spherical
@@ -306,13 +282,22 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     [xt1i, xt2i] = sampledist(settings.mu, x1, x2, settings.N, @(n) rand(n, 1));
     xt1i = xt1i'; xt2i = xt2i';
     
-    [~, ~, phi2, mur, c, xt1, xt2] = runsearch(settings.K, vx, vy, settings.h, ...
-        settings.x1, settings.x2, settings.mu, settings.nsamplepts, xt1i, xt2i, ...
-        umax, settings.algorithm, 0, findradius, ...
-        settings.findtimeconst, settings.tstop, settings.lambda, handles.axes_smain, ...
-        gifname, handles.axes_saux, handles.axes_smu, handles.axes_scov, ...
-        handles.btn_singleabort, 0, handles.cbox_spause, settings.agentuncertainty, ...
-        settings.targetuncertainty, settings.spherical);
+    settings.ntargets = 0;
+    settings.stopallfound = 0;
+    settings.findradius = findradius;
+    settings.umax = umax;
+    settings.v1 = vx;
+    settings.v2 = vy;
+    settings.xt1i = xt1i;
+    settings.xt2i = xt2i;
+    
+    ax.main = handles.axes_smain;
+    ax.convergence = handles.axes_saux;
+    ax.mu = handles.axes_smu;
+    ax.coverage = handles.axes_scov;
+    
+    [~, ~, phi2, mur, c, xt1, xt2] = runsearch(settings, outputsettings, ...
+        ax, handles.btn_singleabort, handles.cbox_spause);
     
     data.convergence = [data.convergence; {phi2}];
     data.particledist = [data.particledist; {mur}];
@@ -997,6 +982,70 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 function edit_ylower_CreateFcn(hObject, eventdata, handles)
 
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkbox8.
+function checkbox8_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox8
+
+
+% --- Executes on button press in checkbox9.
+function checkbox9_Callback(hObject, eventdata, handles)
+% hObject    handle to checkbox9 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkbox9
+
+
+
+function edit79_Callback(hObject, eventdata, handles)
+% hObject    handle to edit79 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit79 as text
+%        str2double(get(hObject,'String')) returns contents of edit79 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit79_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit79 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function edit80_Callback(hObject, eventdata, handles)
+% hObject    handle to edit80 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit80 as text
+%        str2double(get(hObject,'String')) returns contents of edit80 as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function edit80_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit80 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
