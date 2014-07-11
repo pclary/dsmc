@@ -7,7 +7,7 @@ function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(settings, ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 7/10/2014
+% Updated 7/11/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Unpack settings
@@ -21,6 +21,7 @@ x1 = settings.x1;
 x2 = settings.x2;
 mu = settings.mu;
 nsamplepts = settings.nsamplepts;
+ngrid = settings.ngrid;
 umax = settings.umax;
 algorithm = settings.algorithm;
 ntargets = settings.ntargets;
@@ -32,19 +33,24 @@ stopallfound = settings.stopallfound;
 au = settings.agentuncertainty;
 tu = settings.targetuncertainty;
 spherical = settings.spherical;
+starttime = settings.starttime;
+datetitle = settings.datetitle;
+xt1i = settings.xt1i;
+xt2i = settings.xt2i;
 
 % Append (1), (2), etc to output file names to avoid overwriting old output
+outputsettings.main.filename = processfilename(outputsettings.main.filename, outputsettings.main.animation);
+outputsettings.convergence.filename = processfilename(outputsettings.convergence.filename, outputsettings.convergence.animation);
+outputsettings.mu.filename = processfilename(outputsettings.mu.filename, outputsettings.mu.animation);
+outputsettings.coverage.filename = processfilename(outputsettings.coverage.filename, outputsettings.coverage.animation);
+outputsettings.mesohyperbolicity.filename = processfilename(outputsettings.mesohyperbolicity.filename, outputsettings.mesohyperbolicity.animation);
+
 if ~outputsettings.overwrite
-    outputsettings.main.filename = ...
-        getunusedfilename(outputsettings.main.filename);
-    outputsettings.convergence.filename = ...
-        getunusedfilename(outputsettings.convergence.filename);
-    outputsettings.mu.filename = ...
-        getunusedfilename(outputsettings.mu.filename);
-    outputsettings.coverage.filename = ...
-        getunusedfilename(outputsettings.coverage.filename);
-    outputsettings.mesohyperbolicity.filename = ...
-        getunusedfilename(outputsettings.mesohyperbolicity.filename);
+    outputsettings.main.filename = getunusedfilename(outputsettings.main.filename);
+    outputsettings.convergence.filename = getunusedfilename(outputsettings.convergence.filename);
+    outputsettings.mu.filename = getunusedfilename(outputsettings.mu.filename);
+    outputsettings.coverage.filename = getunusedfilename(outputsettings.coverage.filename);
+    outputsettings.mesohyperbolicity.filename = getunusedfilename(outputsettings.mesohyperbolicity.filename);
 end
 
 % Precompute Fourier basis functions
@@ -166,6 +172,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     % Plot particles and trajectories
     if isfield(ax, 'main') && ~isempty(ax.main)
         plotmain(ax.main, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co);
+        maketitle(ax.main, t, datetitle, starttime);
     end
     
     % Plot convergence metric
@@ -180,7 +187,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Plot trajectory density
     if isfield(ax, 'coverage') &&  ~isempty(ax.coverage)
-        plotcoverage(ax.coverage, mu, fks, hks, xt1, xt2, x1, x2, xlim, ylim, stepnum);
+        plotcoverage(ax.coverage, mu, fks, hks, K, xt1, xt2, x1, x2, xlim, ylim, stepnum);
     end
     
     drawnow;
@@ -190,27 +197,32 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
         @(ax) plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co), ...
         @(ax) plotconvergence(ax, phi2), ...
         @(ax) plotmu(ax, mu, fks, muks, K, x1, x2, xlim, ylim), ...
-        @(ax) plotcoverage(ax, mu, fks, hks, xt1, xt2, x1, x2, xlim, ylim, stepnum), ...
-        @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, outputsettings.mesohyperbolicity.T, ngrid)};
+        @(ax) plotcoverage(ax, mu, fks, hks, K, xt1, xt2, x1, x2, xlim, ylim, stepnum), ...
+        @(ax) plotmesohyperbolicity(ax, v1, v2, xlim, ylim, t, outputsettings.mesohyperbolicity.T, ngrid)};
     
     osfigs = {outputsettings.main, outputsettings.convergence, ...
         outputsettings.mu, outputsettings.coverage, ...
         outputsettings.mesohyperbolicity};
     
+    f = figure;
+    axnew = gca;
+    set (f, 'Renderer', 'zbuffer');
+    set(f, 'Visible', 'off');
+    
     for i = 1:numel(osfigs)
-        os = osfigs(i);
-        if os.enabled && t >= fcount(i)*os.rate
-            fcount(i) = fcount(i) + 1;
-            f = figure;
+        os = osfigs{i};
+        if os.enable && t >= fcount(i)*os.rate
+            set(f, 'Position', [0, 0, os.width, os.height]);
+            func = plotfun{i};
+            func(axnew);
+            maketitle(axnew, t, datetitle, starttime);
             set(f, 'Visible', 'off');
-            set(f, 'Position', [0, 0, os.w, os.h]);
-            plotfun(gca);
             drawnow;
             if os.animation
-                frame = getframe(gca);
+                frame = getframe(f);
                 im = frame2im(frame);
                 [imind, map] = rgb2ind(im,256);
-                if fcount == 0
+                if fcount(i) == 0
                     imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'LoopCount', inf);
                 else
                     imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'WriteMode', 'append');
@@ -219,11 +231,14 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
                 if ~exist(os.filename, 'file')
                     mkdir(os.filename);
                 end
-                saveas(f, [os.filename, '/', sprintf('%d.png', fcount(i))], 'png');
+                frame = getframe(f);
+                im = frame2im(frame);
+                imwrite(im, [os.filename, '/', sprintf('%.3d.png', fcount(i) + 1)], 'png');
             end
-            delete(f);
+            fcount(i) = fcount(i) + 1;
         end
     end
+    delete(f);
     
     % Pause
     while paused()
@@ -234,6 +249,23 @@ end
 set(gca, 'ColorOrder', co);
 
 targets = ntargets:-1:ntargets-numel(findtimes)+1;
+
+mur = zeros(size(mu));
+for K1 = 0:K
+    for K2 = 0:K
+        mur = mur + fks{K1+1, K2+1}*muks(K1+1, K2+1);
+    end
+end
+mur = mur / trapz(x2(:, 1), trapz(x1(1, :), mur, 2));
+
+c = zeros(size(mu));
+for K1 = 0:K
+    for K2 = 0:K
+        c = c + fks{K1+1, K2+1}*ck(K1, K2, xt1(1:stepnum, :), ...
+            xt2(1:stepnum, :), hks(K1+1, K2+1), xlim, ylim);
+    end
+end
+c = c / trapz(x2(:, 1), trapz(x1(1, :), c, 2));
 
 
 function plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co)
@@ -252,7 +284,6 @@ plot(ax, [xt1(stepnum, :); xt1(stepnum, :)], ...
 hold(ax, 'off');
 axis(ax, 'equal');
 axis(ax, [xlim, ylim]);
-title(ax, sprintf('t = %.2f s', t));
 
 
 function plotconvergence(ax, phi2)
@@ -279,7 +310,7 @@ title(ax, 'Log(Particle distribution)');
 caxis(ax, sort([0, max(max(mur))]));
 
 
-function plotcoverage(ax, mu, fks, hks, xt1, xt2, x1, x2, xlim, ylim, stepnum)
+function plotcoverage(ax, mu, fks, hks, K, xt1, xt2, x1, x2, xlim, ylim, stepnum)
 
 c = zeros(size(mu));
 for K1 = 0:K
@@ -304,6 +335,22 @@ axis(ax, 'equal');
 axis(ax, [xlim, ylim]);
 title(ax, 'Mesohyperbolicity');
 colormap(ax, mhcolormap(256));
+
+
+function maketitle(ax, t, datetitle, starttime)
+
+if datetitle
+    title(ax, datestr(starttime + t/60/60/24, 0));
+else
+    title(ax, sprintf('t = %.2f s', t));
+end
+
+
+function filename = processfilename(filename, animation)
+
+if animation && ~strcmpi(filename(end-3:end), '.gif')
+    filename = [filename, '.gif'];
+end
 
 
 function filename = getunusedfilename(filename)

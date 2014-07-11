@@ -25,12 +25,12 @@ function varargout = gui(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 7/10/2014
+% Updated 7/11/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 05-Jul-2014 22:39:36
+% Last Modified by GUIDE v2.5 11-Jul-2014 00:47:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -78,6 +78,7 @@ set(handles.panel_mh,'Visible','Off');
 
 settings = struct;
 data = struct;
+outputsettings = struct;
 
 settings.N = 2;
 settings.xlim = [0, 1];
@@ -87,7 +88,6 @@ settings.tstop = 50;
 settings.lambda = 0.5;
 settings.algorithm = 'DSMC';
 settings.spherical = 0;
-settings.gifname = '';
 settings.K = 20;
 settings.ngrid = 40;
 settings.h = 1/30;
@@ -102,6 +102,8 @@ settings.gaussianstd = 0.1;
 settings.mhT = 10;
 settings.mhupper = 4/(settings.mhT)^2;
 settings.mhlower = 0;
+settings.starttime = now;
+settings.datetitle = 0;
 settings.v1 = @(t, x, y) -0.1*sin(2*pi*x).*cos(2*pi*y) + ...
     -0.01*cos(2*pi*t)*sin(2*pi*(x-0.25)).*cos(2*pi*(y-0.25));
 settings.v2 = @(t, x, y) 0.1*cos(2*pi*x).*sin(2*pi*y) + ...
@@ -121,8 +123,22 @@ data.xpaths = {};
 data.ypaths = {};
 data.runsettings = {};
 
+outputsettings.overwrite = 0;
+outputsettings.main.enable = 0;
+outputsettings.main.rate = 0;
+outputsettings.main.filename = '';
+outputsettings.main.animation = 0;
+outputsettings.main.width = 400;
+outputsettings.main.height = 400;
+outputsettings.convergence = outputsettings.main;
+outputsettings.mu = outputsettings.main;
+outputsettings.coverage = outputsettings.main;
+outputsettings.mesohyperbolicity = outputsettings.main;
+outputsettings.mesohyperbolicity.T = 1;
+
 handles.settings = settings;
 handles.data = data;
+handles.outputsettings = outputsettings;
 setparamboxes(handles);
 
 xlabel(handles.axes_maux, 'Time');
@@ -151,6 +167,7 @@ function setparamboxes(handles)
 % Updates values in the parameter boxes in the gui
 
 settings = handles.settings;
+os = handles.outputsettings;
 set(handles.edit_N, 'String', num2str(settings.N));
 set(handles.edit_xlower, 'String', num2str(settings.xlim(1)));
 set(handles.edit_xupper, 'String', num2str(settings.xlim(2)));
@@ -160,7 +177,6 @@ set(handles.edit_umax, 'String', num2str(settings.umax));
 set(handles.edit_tstop, 'String', num2str(settings.tstop));
 set(handles.edit_lambda, 'String', num2str(settings.lambda));
 set(handles.cbox_spherical, 'Value', settings.spherical);
-set(handles.edit_gifname, 'String', settings.gifname);
 set(handles.edit_K, 'String', num2str(settings.K));
 set(handles.edit_ngrid, 'String', num2str(settings.ngrid));
 set(handles.edit_h, 'String', num2str(settings.h));
@@ -178,6 +194,40 @@ set(handles.edit_v1, 'String', char(settings.v1));
 set(handles.edit_v2, 'String', char(settings.v2));
 set(handles.edit_agentuncertainty, 'String', num2str(settings.agentuncertainty));
 set(handles.edit_targetuncertainty, 'String', num2str(settings.targetuncertainty));
+set(handles.edit_agentuncertainty, 'String', num2str(settings.agentuncertainty));
+set(handles.edit_starttime, 'String', datestr(settings.starttime, 0));
+set(handles.cbox_datetitle, 'Value', settings.datetitle);
+set(handles.cbox_main_enable, 'Value', os.main.enable);
+set(handles.cbox_main_animation, 'Value', os.main.animation);
+set(handles.edit_main_rate, 'String', num2str(os.main.rate));
+set(handles.edit_main_width, 'String', num2str(os.main.width));
+set(handles.edit_main_height, 'String', num2str(os.main.height));
+set(handles.edit_main_filename, 'String', os.main.filename);
+set(handles.cbox_cov_enable, 'Value', os.coverage.enable);
+set(handles.cbox_cov_animation, 'Value', os.coverage.animation);
+set(handles.edit_cov_rate, 'String', num2str(os.coverage.rate));
+set(handles.edit_cov_width, 'String', num2str(os.coverage.width));
+set(handles.edit_cov_height, 'String', num2str(os.coverage.height));
+set(handles.edit_cov_filename, 'String', os.coverage.filename);
+set(handles.cbox_mu_enable, 'Value', os.mu.enable);
+set(handles.cbox_mu_animation, 'Value', os.mu.animation);
+set(handles.edit_mu_rate, 'String', num2str(os.mu.rate));
+set(handles.edit_mu_width, 'String', num2str(os.mu.width));
+set(handles.edit_mu_height, 'String', num2str(os.mu.height));
+set(handles.edit_mu_filename, 'String', os.mu.filename);
+set(handles.cbox_con_enable, 'Value', os.convergence.enable);
+set(handles.cbox_con_animation, 'Value', os.convergence.animation);
+set(handles.edit_con_rate, 'String', num2str(os.convergence.rate));
+set(handles.edit_con_width, 'String', num2str(os.convergence.width));
+set(handles.edit_con_height, 'String', num2str(os.convergence.height));
+set(handles.edit_con_filename, 'String', os.convergence.filename);
+set(handles.cbox_mh_enable, 'Value', os.mesohyperbolicity.enable);
+set(handles.cbox_mh_animation, 'Value', os.mesohyperbolicity.animation);
+set(handles.edit_mh_rate, 'String', num2str(os.mesohyperbolicity.rate));
+set(handles.edit_mh_width, 'String', num2str(os.mesohyperbolicity.width));
+set(handles.edit_mh_height, 'String', num2str(os.mesohyperbolicity.height));
+set(handles.edit_mh_filename, 'String', os.mesohyperbolicity.filename);
+set(handles.edit_mh_period, 'String', num2str(os.mesohyperbolicity.T));
 
 function [vx, vy] = getvelfunction(handles)
 % Get the appropriate velocity functions for expression mode and data
@@ -319,6 +369,7 @@ function btn_multistart_Callback(hObject, eventdata, handles)
 setappdata(handles.btn_singleabort, 'Abort', 0);
 
 settings = handles.settings;
+outputsettings = handles.outputsettings;
 data = handles.data;
 
 [vx, vy] = getvelfunction(handles);
@@ -334,20 +385,24 @@ end
 while getappdata(handles.btn_singleabort, 'Abort') == 0
     cla(handles.axes_mmain);
     
-    gifname = getunusedfilename(settings.gifname);
-    
     x1 = linspace(settings.xlim(1), settings.xlim(2), settings.ngrid);
     x2 = linspace(settings.ylim(1), settings.ylim(2), settings.ngrid);
     [xt1i, xt2i] = sampledist(settings.mu, x1, x2, settings.N, @(n) rand(n, 1));
     xt1i = xt1i'; xt2i = xt2i';
     
-    [time, target] = runsearch(settings.K, vx, vy, settings.h, ...
-        settings.x1, settings.x2, settings.mu, settings.nsamplepts, xt1i, xt2i, ...
-        umax, settings.algorithm, settings.ntargets, findradius, ...
-        settings.findtimeconst, settings.tstop, settings.lambda, handles.axes_mmain, ...
-        gifname, [], [], [], handles.btn_singleabort, 1, ...
-        handles.cbox_mpause, settings.agentuncertainty, ...
-        settings.targetuncertainty, settings.spherical);
+    settings.stopallfound = 1;
+    settings.findradius = findradius;
+    settings.umax = umax;
+    settings.v1 = vx;
+    settings.v2 = vy;
+    settings.xt1i = xt1i;
+    settings.xt2i = xt2i;
+    
+    ax.main = handles.axes_mmain;
+    
+    [time, target] = runsearch(settings, outputsettings, ...
+        ax, handles.btn_singleabort, handles.cbox_mpause);
+    
     hold(handles.axes_maux, 'on');
     if strcmp(settings.algorithm, 'DSMC')
         plot(handles.axes_maux, time, target, 'b.');
@@ -380,6 +435,13 @@ if exist('data', 'var') && exist('settings', 'var')
         settings.ylim = [0, settings.L2];
         settings = rmfield(settings, {'L1', 'L2'});
     end 
+    if ~isfield(settings, 'starttime')
+        settings.starttime = now;
+        settings.datetitle = 0;
+    end
+    if isfield(settings, 'gifname')
+        settings = rmfield(settings, 'gifname');
+    end
     
     handles.settings = settings;
     handles.data = data;
@@ -613,12 +675,6 @@ set(hObject, 'String', num2str(val));
 handles.settings.lambda = val;
 guidata(hObject, handles);
 
-function edit_gifname_Callback(hObject, eventdata, handles)
-
-str = get(hObject,'String');
-handles.settings.gifname = str;
-guidata(hObject, handles);
-
 function popup_algorithm_Callback(hObject, eventdata, handles)
 
 contents = cellstr(get(hObject,'String'));
@@ -839,6 +895,242 @@ val = get(hObject, 'Value');
 handles.settings.spherical = val;
 guidata(hObject, handles);
 
+function cbox_datetitle_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.settings.datetitle = val;
+guidata(hObject, handles);
+
+function edit_starttime_Callback(hObject, eventdata, handles)
+
+val = datenum(get(hObject, 'String'));
+set(hObject, 'String', datestr(val, 0));
+handles.settings.starttime = val;
+guidata(hObject, handles);
+
+function cbox_overwrite_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.overwrite = val;
+guidata(hObject, handles);
+
+function cbox_main_enable_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.main.enable = val;
+guidata(hObject, handles);
+
+function edit_main_rate_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.main.rate = val;
+guidata(hObject, handles);
+
+function edit_main_width_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.main.width = val;
+guidata(hObject, handles);
+
+function edit_main_height_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.main.height = val;
+guidata(hObject, handles);
+
+function edit_main_filename_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+handles.outputsettings.main.filename = str;
+guidata(hObject, handles);
+
+function cbox_main_animation_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.main.animation = val;
+guidata(hObject, handles);
+
+function cbox_cov_enable_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.coverage.enable = val;
+guidata(hObject, handles);
+
+function edit_cov_rate_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.coverage.rate = val;
+guidata(hObject, handles);
+
+function edit_cov_width_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.coverage.width = val;
+guidata(hObject, handles);
+
+function edit_cov_height_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.coverage.height = val;
+guidata(hObject, handles);
+
+function edit_cov_filename_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+handles.outputsettings.coverage.filename = str;
+guidata(hObject, handles);
+
+function cbox_cov_animation_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.coverage.animation = val;
+guidata(hObject, handles);
+
+function cbox_mu_enable_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.mu.enable = val;
+guidata(hObject, handles);
+
+function edit_mu_rate_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.mu.rate = val;
+guidata(hObject, handles);
+
+function edit_mu_width_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.mu.width = val;
+guidata(hObject, handles);
+
+function edit_mu_height_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.mu.height = val;
+guidata(hObject, handles);
+
+function edit_mu_filename_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+handles.outputsettings.mu.filename = str;
+guidata(hObject, handles);
+
+function cbox_mu_animation_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.mu.animation = val;
+guidata(hObject, handles);
+
+function cbox_con_enable_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.convergence.enable = val;
+guidata(hObject, handles);
+
+function edit_con_rate_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.convergence.rate = val;
+guidata(hObject, handles);
+
+function edit_con_width_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.convergence.width = val;
+guidata(hObject, handles);
+
+function edit_con_height_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.convergence.height = val;
+guidata(hObject, handles);
+
+function edit_con_filename_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+handles.outputsettings.convergence.filename = str;
+guidata(hObject, handles);
+
+function cbox_con_animation_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.convergence.animation = val;
+guidata(hObject, handles);
+
+function cbox_mh_enable_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.mesohyperbolicity.enable = val;
+guidata(hObject, handles);
+
+function edit_mh_rate_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.mesohyperbolicity.rate = val;
+guidata(hObject, handles);
+
+function edit_mh_width_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.mesohyperbolicity.width = val;
+guidata(hObject, handles);
+
+function edit_mh_height_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.mesohyperbolicity.height = val;
+guidata(hObject, handles);
+
+function edit_mh_filename_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+handles.outputsettings.mesohyperbolicity.filename = str;
+guidata(hObject, handles);
+
+function cbox_mh_animation_Callback(hObject, eventdata, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.mesohyperbolicity.animation = val;
+guidata(hObject, handles);
+
+function edit_mh_period_Callback(hObject, eventdata, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.mesohyperbolicity.T = val;
+guidata(hObject, handles);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -896,11 +1188,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 function edit_lambda_CreateFcn(hObject, eventdata, handles)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function edit_gifname_CreateFcn(hObject, eventdata, handles)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
@@ -985,67 +1272,112 @@ function edit_ylower_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+function edit_starttime_CreateFcn(hObject, eventdata, handles)
 
-
-% --- Executes on button press in checkbox8.
-function checkbox8_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox8 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox8
-
-
-% --- Executes on button press in checkbox9.
-function checkbox9_Callback(hObject, eventdata, handles)
-% hObject    handle to checkbox9 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of checkbox9
-
-
-
-function edit79_Callback(hObject, eventdata, handles)
-% hObject    handle to edit79 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit79 as text
-%        str2double(get(hObject,'String')) returns contents of edit79 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit79_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit79 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+function edit_main_rate_CreateFcn(hObject, eventdata, handles)
 
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_main_width_CreateFcn(hObject, eventdata, handles)
 
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_main_height_CreateFcn(hObject, eventdata, handles)
 
-function edit80_Callback(hObject, eventdata, handles)
-% hObject    handle to edit80 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_main_filename_CreateFcn(hObject, eventdata, handles)
 
-% Hints: get(hObject,'String') returns contents of edit80 as text
-%        str2double(get(hObject,'String')) returns contents of edit80 as a double
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mh_rate_CreateFcn(hObject, eventdata, handles)
 
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mh_width_CreateFcn(hObject, eventdata, handles)
 
-% --- Executes during object creation, after setting all properties.
-function edit80_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit80 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mh_height_CreateFcn(hObject, eventdata, handles)
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mh_filename_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_con_rate_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_con_width_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_con_height_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_con_filename_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mu_rate_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mu_width_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mu_height_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mu_filename_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_cov_filename_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_cov_height_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_cov_width_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_cov_rate_CreateFcn(hObject, eventdata, handles)
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_mh_period_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
