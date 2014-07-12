@@ -833,61 +833,61 @@ function edit_xupper_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
-if val > handles.settings.xlim(1)
+%if val > handles.settings.xlim(1)
     set(hObject, 'String', num2str(val));
     handles.settings.xlim(2) = val;
+    guidata(hObject, handles);
     [mu, x1, x2] = generatemu(handles);
     handles.settings.mu = mu;
     handles.settings.x1 = x1;
     handles.settings.x2 = x2;
     rendermu(handles);
-    guidata(hObject, handles);
-end
+%end
 
 function edit_xlower_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
-if val < handles.settings.xlim(2)
+%if val < handles.settings.xlim(2)
     set(hObject, 'String', num2str(val));
     handles.settings.xlim(1) = val;
+    guidata(hObject, handles);
     [mu, x1, x2] = generatemu(handles);
     handles.settings.mu = mu;
     handles.settings.x1 = x1;
     handles.settings.x2 = x2;
     rendermu(handles);
-    guidata(hObject, handles);
-end
+%end
 
 function edit_yupper_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
-if val > handles.settings.ylim(1)
+%if val > handles.settings.ylim(1)
     set(hObject, 'String', num2str(val));
     handles.settings.ylim(2) = val;
+    guidata(hObject, handles);
     [mu, x1, x2] = generatemu(handles);
     handles.settings.mu = mu;
     handles.settings.x1 = x1;
     handles.settings.x2 = x2;
     rendermu(handles);
-    guidata(hObject, handles);
-end
+%end
 
 function edit_ylower_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
-if val < handles.settings.ylim(2)
+%if val < handles.settings.ylim(2)
     set(hObject, 'String', num2str(val));
     handles.settings.ylim(1) = val;
+    guidata(hObject, handles);
     [mu, x1, x2] = generatemu(handles);
     handles.settings.mu = mu;
     handles.settings.x1 = x1;
     handles.settings.x2 = x2;
     rendermu(handles);
-    guidata(hObject, handles);
-end
+%end
 
 function cbox_spherical_Callback(hObject, eventdata, handles)
 

@@ -128,8 +128,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
         xt1c(stepnum+1, :) = xt1n;
         xt2c(stepnum+1, :) = xt2n;
         % Update mu only every 10th step (significant speedup)
-        if ((nargin >= 20 && ~isempty(axaux)) || (nargin >= 21&& ~isempty(axmu))) && ...
-                mod(stepnum, 10) == 1
+        if mod(stepnum, 10) == 1
             muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks);
         end
     elseif strcmp(algorithm, 'Random Walk')
@@ -137,8 +136,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
         xt20 = xt2(1:stepnum, :);
         [xt1n, xt2n] = randomwalkstep(xt10, xt20, h, umax, xlim, ylim, spherical);
         % Update mu only every 10th step (significant speedup)
-        if ((nargin >= 20 && ~isempty(axaux)) || (nargin >= 21&& ~isempty(axmu))) && ...
-                mod(stepnum, 10) == 1
+        if mod(stepnum, 10) == 1
             muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks);
         end
     end
@@ -152,6 +150,9 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     notfound = ~ismember(1:ntargets, foundtargets);
     dists = min(sqrt(bsxfun(@minus, xt1(stepnum, :), mu1tar).^2 + ...
         bsxfun(@minus, xt2(stepnum, :), mu2tar).^2), [], 2);
+    if numel(dists) == 0
+        dists = zeros(0, 1);
+    end
     found = find(dists < findradius & notfound' & rand(ntargets, 1) > findchance);
     foundtargets = [foundtargets; found];
     findtimes = [findtimes; t*ones(numel(found), 1)];
@@ -324,7 +325,11 @@ surf(ax, x1, x2, c, 'EdgeColor', 'none');
 axis(ax, 'equal');
 axis(ax, [xlim, ylim]);
 title(ax, 'Coverage density');
-caxis(ax, [0, max(max(c))]);
+maxc = max(max(c));
+if isnan(maxc)
+    maxc = 1;
+end
+caxis(ax, [0, maxc]);
 
 
 function plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, T, ngrid)
@@ -335,6 +340,8 @@ axis(ax, 'equal');
 axis(ax, [xlim, ylim]);
 title(ax, 'Mesohyperbolicity');
 colormap(ax, mhcolormap(256));
+caxis(ax, [-2/(T)^2, 6/(T)^2]);
+colorbar('peer', ax, 'EastOutside');
 
 
 function maketitle(ax, t, datetitle, starttime)
@@ -348,7 +355,7 @@ end
 
 function filename = processfilename(filename, animation)
 
-if animation && ~strcmpi(filename(end-3:end), '.gif')
+if animation && (numel(filename < 4) || ~strcmpi(filename(end-3:end), '.gif'))
     filename = [filename, '.gif'];
 end
 

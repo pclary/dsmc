@@ -22,8 +22,8 @@ else
 end
 
 % Use an euler step to compute the new agent positions
-xt1n = xt1n0 + h*umax*sin(dir)*adj;
-xt2n = xt2n0 + h*umax*cos(dir)*adj;
+xt1n = xt1n0 + h.*umax.*sin(dir).*adj;
+xt2n = xt2n0 + h.*umax.*cos(dir).*adj;
 
 % If outside of the domain, move towards the center of the domain
 outofbounds = find(xt1n0 > xlim(2) | xt1n0 < xlim(1) | xt2n0 > ylim(2) | xt2n0 < ylim(1));
