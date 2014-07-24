@@ -2,7 +2,8 @@ Instructions
     Run 'gui.m' in Matlab to start the Search GUI.
     
 
-Release Notes
+Release Notes:
+    7/23/2014: Detection radius and landmasses are shown in main plot
     7/14/2014: Added unit labels to parameters
     7/11/2014: Added new figure output options
     7/1/2014: Improved behavior regarding loading custom priors

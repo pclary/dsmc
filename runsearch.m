@@ -7,7 +7,7 @@ function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(settings, ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 7/11/2014
+% Updated 7/23/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Unpack settings
@@ -37,6 +37,8 @@ starttime = settings.starttime;
 datetitle = settings.datetitle;
 xt1i = settings.xt1i;
 xt2i = settings.xt2i;
+xland = settings.xland;
+yland = settings.yland;
 
 % Append (1), (2), etc to output file names to avoid overwriting old output
 outputsettings.main.filename = processfilename(outputsettings.main.filename, outputsettings.main.animation);
@@ -172,7 +174,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Plot particles and trajectories
     if isfield(ax, 'main') && ~isempty(ax.main)
-        plotmain(ax.main, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co);
+        plotmain(ax.main, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, ...
+            stepnum, ntargets, findradius, xland, yland, xlim, ylim, co);
         maketitle(ax.main, t, datetitle, starttime);
     end
     
@@ -195,7 +198,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Save output figures
     plotfun = {...
-        @(ax) plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co), ...
+        @(ax) plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, ...
+        stepnum, ntargets, findradius, xland, yland, xlim, ylim, co), ...
         @(ax) plotconvergence(ax, phi2), ...
         @(ax) plotmu(ax, mu, fks, muks, K, x1, x2, xlim, ylim), ...
         @(ax) plotcoverage(ax, mu, fks, hks, K, xt1, xt2, x1, x2, xlim, ylim, stepnum), ...
@@ -269,7 +273,8 @@ end
 c = c / trapz(x2(:, 1), trapz(x1(1, :), c, 2));
 
 
-function plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, stepnum, t, xlim, ylim, co)
+function plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, ...
+    stepnum, ntargets, findradius, xland, yland, xlim, ylim, co)
 
 plot(ax, mu1, mu2, '.b', 'MarkerSize', 2);
 set(ax, 'ColorOrder', co(2:end, :), 'NextPlot', 'replacechildren');
@@ -278,9 +283,18 @@ plot(ax, mu1tar, mu2tar, 'co', 'MarkerSize', 5, 'LineWidth', 2);
 plot(ax, mu1tar(foundtargets), mu2tar(foundtargets), 'mo', ...
     'MarkerSize', 5, 'LineWidth', 2);
 
+plot(ax, xland, yland, 'k.');
+
 plot(ax, [xt1(1, :); xt1(1:stepnum, :)], [xt2(1, :); xt2(1:stepnum, :)]);
 plot(ax, [xt1(stepnum, :); xt1(stepnum, :)], ...
     [xt2(stepnum, :); xt2(stepnum, :)], '.', 'MarkerSize', 15);
+
+if ntargets > 0
+    theta = linspace(0, 2*pi)';
+    circx = bsxfun(@plus, xt1(stepnum, :), findradius*cos(theta));
+    circy = bsxfun(@plus, xt2(stepnum, :), findradius*sin(theta));
+    plot(ax, circx, circy);
+end
 
 hold(ax, 'off');
 axis(ax, 'equal');

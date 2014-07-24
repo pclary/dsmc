@@ -25,7 +25,7 @@ function varargout = gui(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 7/11/2014
+% Updated 7/23/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Edit the above text to modify the response to help gui
@@ -332,6 +332,16 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     [xt1i, xt2i] = sampledist(settings.mu, x1, x2, settings.N, @(n) rand(n, 1));
     xt1i = xt1i'; xt2i = xt2i';
     
+    if isfield(handles, 'veldata')
+        iland = find(isnan(handles.veldata.water_u) | isnan(handles.veldata.water_v));
+        [xtemp, ytemp] = meshgrid(handles.veldata.xvals, handles.veldata.yvals);
+        xland = xtemp(iland);
+        yland = ytemp(iland);
+    else
+        xland = [];
+        yland = [];
+    end
+    
     settings.ntargets = 0;
     settings.stopallfound = 0;
     settings.findradius = findradius;
@@ -340,6 +350,8 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     settings.v2 = vy;
     settings.xt1i = xt1i;
     settings.xt2i = xt2i;
+    settings.xland = xland;
+    settings.yland = yland;
     
     ax.main = handles.axes_smain;
     ax.convergence = handles.axes_saux;
@@ -390,6 +402,16 @@ while getappdata(handles.btn_singleabort, 'Abort') == 0
     [xt1i, xt2i] = sampledist(settings.mu, x1, x2, settings.N, @(n) rand(n, 1));
     xt1i = xt1i'; xt2i = xt2i';
     
+    if isfield(handles, 'veldata')
+        iland = find(isnan(handles.veldata.water_u(:,:,1)) | isnan(handles.veldata.water_v(:,:,1)));
+        [xtemp, ytemp] = meshgrid(handles.veldata.xvals, handles.veldata.yvals);
+        xland = xtemp(iland);
+        yland = ytemp(iland);
+    else
+        xland = [];
+        yland = [];
+    end
+    
     settings.stopallfound = 1;
     settings.findradius = findradius;
     settings.umax = umax;
@@ -397,6 +419,8 @@ while getappdata(handles.btn_singleabort, 'Abort') == 0
     settings.v2 = vy;
     settings.xt1i = xt1i;
     settings.xt2i = xt2i;
+    settings.xland = xland;
+    settings.yland = yland;
     
     ax.main = handles.axes_mmain;
     
