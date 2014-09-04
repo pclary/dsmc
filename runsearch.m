@@ -72,7 +72,7 @@ end
 [mu1tar, mu2tar] = sampledist(mu, x1(1, :), x2(:, 1), ntargets);
 foundtargets = [];
 findtimes = 0;
-findchance = exp(-h/findtimeconst);
+findchance = 1 - exp(-h/findtimeconst);
 phi2 = [];
 
 % Set initial positions
@@ -155,7 +155,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     if numel(dists) == 0
         dists = zeros(0, 1);
     end
-    found = find(dists < findradius & notfound' & rand(ntargets, 1) > findchance);
+    found = find(dists < findradius & notfound' & rand(ntargets, 1) < findchance);
     foundtargets = [foundtargets; found];
     findtimes = [findtimes; t*ones(numel(found), 1)];
     
