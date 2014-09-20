@@ -3,6 +3,8 @@ Instructions
     
 
 Release Notes:
+    9/20/2014: Changed lawnmower to keep track of state separately
+    9/4/2014: Fixed target detection probability variable naming
     7/23/2014: Detection radius and landmasses are shown in main plot
     7/14/2014: Added unit labels to parameters
     7/11/2014: Added new figure output options

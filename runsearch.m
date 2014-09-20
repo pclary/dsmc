@@ -78,10 +78,6 @@ phi2 = [];
 % Set initial positions
 xt1 = xt1i;
 xt2 = xt2i;
-if strcmp(algorithm, 'Lawnmower')
-    xt1c = xt1i;
-    xt2c = xt2i;
-end
 
 fcount = [0, 0, 0, 0, 0];
 stepnum = size(xt1, 1);
@@ -121,14 +117,9 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
         muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks);
         [xt1n, xt2n] = dsmcstep(xt10, xt20, muks, h, umax, hks, K, xlim, ylim, au, spherical);
     elseif strcmp(algorithm, 'Lawnmower')
-        % Keep track of unadvected trajectory (required by lawnmowerstep)
-        xt10 = xt1c(1:stepnum, :);
-        xt20 = xt2c(1:stepnum, :);
-        xt10(end, :) = xt1(end, :);
-        xt20(end, :) = xt2(end, :);
+        xt10 = xt1(1:stepnum, :);
+        xt20 = xt2(1:stepnum, :);
         [xt1n, xt2n] = lawnmowerstep(xt10, xt20, h, umax, xlim, ylim, 10, spherical);
-        xt1c(stepnum+1, :) = xt1n;
-        xt2c(stepnum+1, :) = xt2n;
         % Update mu only every 10th step (significant speedup)
         if mod(stepnum, 10) == 1
             muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks);
