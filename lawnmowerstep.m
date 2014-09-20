@@ -5,7 +5,7 @@ function [xt1n, xt2n] = lawnmowerstep(xt1, xt2, h, umax, xlim, ylim, nlines, sph
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/30/2014
+% Updated 9/20/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 persistent currentcolumn;
