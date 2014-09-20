@@ -271,6 +271,9 @@ elseif strcmp(settings.mutype, 'Mesohyperbolicity')
         mu(mh >= settings.mhlower | mh <= settings.mhupper) = 1;
     end
 end
+if settings.spherical
+    mu = mu.*cosd(x2);
+end
 
 function rendermu(handles)
 % Renders a preview of the initial particle distribution
