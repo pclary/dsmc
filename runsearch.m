@@ -13,7 +13,6 @@ function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(settings, ...
 % Unpack settings
 xlim = settings.xlim;
 ylim = settings.ylim;
-K = settings.K;
 v1 = settings.v1;
 v2 = settings.v2;
 h = settings.h;
@@ -40,6 +39,12 @@ xt2i = settings.xt2i;
 xland = settings.xland;
 yland = settings.yland;
 
+figure;
+axgrad = gca;
+
+figure;
+axsurf = gca;
+
 % Append (1), (2), etc to output file names to avoid overwriting old output
 outputsettings.main.filename = processfilename(outputsettings.main.filename, outputsettings.main.animation);
 outputsettings.convergence.filename = processfilename(outputsettings.convergence.filename, outputsettings.convergence.animation);
@@ -55,17 +60,7 @@ if ~outputsettings.overwrite
     outputsettings.mesohyperbolicity.filename = getunusedfilename(outputsettings.mesohyperbolicity.filename);
 end
 
-% Precompute Fourier basis functions
-fks = cell(K + 1);
-hks = zeros(K + 1);
-for K1 = 0:K
-    for K2 = 0:K
-        k1 = K1*pi/(xlim(2)-xlim(1));
-        k2 = K2*pi/(ylim(2)-ylim(1));
-        hks(K1+1, K2+1) = sqrt(trapz(x2(:,1), trapz(x1(1,:), cos(k1*(x1-xlim(1))).^2.*cos(k2*(x2-ylim(1))).^2, 2), 1));
-        fks{K1+1, K2+1} = 1./hks(K1+1, K2+1).*cos(k1*(x1-xlim(1))).*cos(k2*(x2-ylim(1)));
-    end
-end
+[K2, K1] = meshgrid(0:ngrid-1, 0:ngrid-1);
 
 % Sample distribution to get particles and targets
 [mu1, mu2] = sampledist(mu, x1(1, :), x2(:, 1), nsamplepts);
@@ -98,6 +93,9 @@ else
     paused = @() 0;
 end
 
+cks = arrayfun(@(K1, K2)ck(K1, K2, xt1(1:stepnum, :), ...
+    xt2(1:stepnum, :), xlim, ylim), K1, K2)';
+
 % Step through simulation until a stop condition is met
 while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort()
     
@@ -110,32 +108,26 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     mu2tar = mu2tarn + tu*rand(size(mu1tar)).*tdisps;
     [xt1, xt2] = rk4step(t, h, xt1, xt2, v1, v2);
     
+    muks = arrayfun(@(K1, K2)muk(K1, K2, mu1, mu2, xlim, ylim), K1, K2)';
+    muks = logmuks(x1, x2, muks, lambda);
+    
     % Use search algorithm to determine new agent positions
+    xt10 = xt1(1:stepnum, :);
+    xt20 = xt2(1:stepnum, :);
     if strcmp(algorithm, 'DSMC')
-        xt10 = xt1(1:stepnum, :);
-        xt20 = xt2(1:stepnum, :);
-        muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks);
-        [xt1n, xt2n] = dsmcstep(xt10, xt20, muks, h, umax, hks, K, xlim, ylim, au, spherical);
+        [xt1n, xt2n] = dsmcstep(xt10, xt20, cks - muks, h, umax, xlim, ylim, au, spherical);
     elseif strcmp(algorithm, 'Lawnmower')
-        xt10 = xt1(1:stepnum, :);
-        xt20 = xt2(1:stepnum, :);
-        [xt1n, xt2n] = lawnmowerstep(xt10, xt20, h, umax, xlim, ylim, 10, spherical);
-        % Update mu only every 10th step (significant speedup)
-        if mod(stepnum, 10) == 1
-            muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks);
-        end
+        [xt1n, xt2n] = lawnmowerstep(xt10, xt20, h, umax, xlim, ylim, 3, spherical);
     elseif strcmp(algorithm, 'Random Walk')
-        xt10 = xt1(1:stepnum, :);
-        xt20 = xt2(1:stepnum, :);
         [xt1n, xt2n] = randomwalkstep(xt10, xt20, h, umax, xlim, ylim, spherical);
-        % Update mu only every 10th step (significant speedup)
-        if mod(stepnum, 10) == 1
-            muks = logmuks(x1, x2, mu1, mu2, lambda, K, fks, hks);
-        end
     end
     xt1(stepnum+1, :) = xt1n;
     xt2(stepnum+1, :) = xt2n;
     stepnum = stepnum + 1;
+    
+    cks = arrayfun(@(K1, K2)ck(K1, K2, xt1(1:stepnum, :), ...
+        xt2(1:stepnum, :), xlim, ylim), K1, K2)';
+    cks = cks / trapz(x2(:, 1), trapz(x1(1, :), idct2(cks)));
     
     t = t + h;
     
@@ -151,15 +143,9 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     findtimes = [findtimes; t*ones(numel(found), 1)];
     
     % Calculate convergence metric
-    sk = @(K1, K2) ck(K1, K2, xt1(1:stepnum, :), xt2(1:stepnum, :), ...
-        hks(K1+1, K2+1), xlim, ylim) - muks(K1+1, K2+1);
-    phi = 0;
-    for K1 = 0:K
-        for K2 = 0:K
-            La = 1/(1 + K1^2 + K2^2)^(3/2);
-            phi = phi + La*sk(K1, K2)^2;
-        end
-    end
+    sks = cks - muks;
+    La = 1./(1 + K1.^2 + K2.^2).^(3/2);
+    phi = sum(sum(La.*sks.^2));
     phi2 = [phi2; phi];
     
     
@@ -175,14 +161,24 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
         plotconvergence(ax.convergence, phi2);
     end
     
+    % Plot s
+    if isfield(ax, 'convergence') && ~isempty(ax.convergence)
+        plots(axsurf, cks - muks, x1, x2, xlim, ylim);
+    end
+    
+    % Plot grad
+    if isfield(ax, 'convergence') && ~isempty(ax.convergence)
+        plotgrad(axgrad, cks - muks, xlim, ylim);
+    end
+    
     % Plot log density of particles
     if isfield(ax, 'mu') && ~isempty(ax.mu)
-        plotmu(ax.mu, mu, fks, muks, K, x1, x2, xlim, ylim);
+        plotmu(ax.mu, muks, x1, x2, xlim, ylim);
     end
     
     % Plot trajectory density
     if isfield(ax, 'coverage') &&  ~isempty(ax.coverage)
-        plotcoverage(ax.coverage, mu, fks, hks, K, xt1, xt2, x1, x2, xlim, ylim, stepnum);
+        plotcoverage(ax.coverage, cks, x1, x2, xlim, ylim);
     end
     
     drawnow;
@@ -192,8 +188,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
         @(ax) plotmain(ax, mu1, mu2, mu1tar, mu2tar, foundtargets, xt1, xt2, ...
         stepnum, ntargets, findradius, xland, yland, xlim, ylim, co), ...
         @(ax) plotconvergence(ax, phi2), ...
-        @(ax) plotmu(ax, mu, fks, muks, K, x1, x2, xlim, ylim), ...
-        @(ax) plotcoverage(ax, mu, fks, hks, K, xt1, xt2, x1, x2, xlim, ylim, stepnum), ...
+        @(ax) plotmu(ax, muks, x1, x2, xlim, ylim), ...
+        @(ax) plotcoverage(ax, cks, x1, x2, xlim, ylim), ...
         @(ax) plotmesohyperbolicity(ax, v1, v2, xlim, ylim, t, outputsettings.mesohyperbolicity.T, ngrid)};
     
     osfigs = {outputsettings.main, outputsettings.convergence, ...
@@ -246,21 +242,10 @@ set(gca, 'ColorOrder', co);
 
 targets = ntargets:-1:ntargets-numel(findtimes)+1;
 
-mur = zeros(size(mu));
-for K1 = 0:K
-    for K2 = 0:K
-        mur = mur + fks{K1+1, K2+1}*muks(K1+1, K2+1);
-    end
-end
+mur = idct2(muks);
 mur = mur / trapz(x2(:, 1), trapz(x1(1, :), mur, 2));
 
-c = zeros(size(mu));
-for K1 = 0:K
-    for K2 = 0:K
-        c = c + fks{K1+1, K2+1}*ck(K1, K2, xt1(1:stepnum, :), ...
-            xt2(1:stepnum, :), hks(K1+1, K2+1), xlim, ylim);
-    end
-end
+c = idct2(cks);
 c = c / trapz(x2(:, 1), trapz(x1(1, :), c, 2));
 
 
@@ -300,14 +285,9 @@ xlabel(ax, 'Steps');
 ylabel(ax, '\phi^2');
 
 
-function plotmu(ax, mu, fks, muks, K, x1, x2, xlim, ylim)
+function plotmu(ax, muks, x1, x2, xlim, ylim)
 
-mur = zeros(size(mu));
-for K1 = 0:K
-    for K2 = 0:K
-        mur = mur + fks{K1+1, K2+1}*muks(K1+1, K2+1);
-    end
-end
+mur = idct2(muks);
 mur = mur / trapz(x2(:, 1), trapz(x1(1, :), mur, 2));
 surf(ax, x1, x2, mur, 'EdgeColor', 'none');
 axis(ax, 'equal');
@@ -316,15 +296,9 @@ title(ax, 'Log(Particle distribution)');
 caxis(ax, sort([0, max(max(mur))]));
 
 
-function plotcoverage(ax, mu, fks, hks, K, xt1, xt2, x1, x2, xlim, ylim, stepnum)
+function plotcoverage(ax, cks, x1, x2, xlim, ylim)
 
-c = zeros(size(mu));
-for K1 = 0:K
-    for K2 = 0:K
-        c = c + fks{K1+1, K2+1}*ck(K1, K2, xt1(1:stepnum, :), ...
-            xt2(1:stepnum, :), hks(K1+1, K2+1), xlim, ylim);
-    end
-end
+c = idct2(cks);
 c = c / trapz(x2(:, 1), trapz(x1(1, :), c, 2));
 surf(ax, x1, x2, c, 'EdgeColor', 'none');
 axis(ax, 'equal');
@@ -347,6 +321,37 @@ title(ax, 'Mesohyperbolicity');
 colormap(ax, mhcolormap(256));
 caxis(ax, [-2/(T)^2, 6/(T)^2]);
 colorbar('peer', ax, 'EastOutside');
+
+
+function plots(ax, sks, x1, x2, xlim, ylim)
+
+[K2, K1] = meshgrid(0:size(sks, 1)-1, 0:size(sks, 2)-1);
+Las = 1./(1 + K1.^2 + K2.^2).^(3/2);
+Lasks = Las .* sks;
+s = idct2(Lasks);
+s = s / trapz(x2(:, 1), trapz(x1(1, :), s, 2));
+surf(ax, x1, x2, s, 'EdgeColor', 'none');
+title(ax, 'DSMC surface');
+
+
+function plotgrad(ax, sks, xlim, ylim)
+
+x1 = linspace(xlim(1), xlim(2), 22);
+x1 = x1(2:end-1);
+x2 = linspace(ylim(1), ylim(2), 22);
+x2 = x2(2:end-1);
+[xa2, xa1] = meshgrid(x2, x1);
+
+Bdir = @(Bs) -bsxfun(@rdivide, Bs, sqrt(sum((Bs).^2, 1)));
+
+tmp = Bdir(B(xa1(:), xa2(:), sks, xlim, ylim));
+u = tmp(1, :);
+v = tmp(2, :);
+
+quiver(ax, xa1(:)', xa2(:)', u, v);
+axis(ax, 'equal');
+axis(ax, [xlim, ylim]);
+title(ax, 'DSMC surface gradient');
 
 
 function maketitle(ax, t, datetitle, starttime)

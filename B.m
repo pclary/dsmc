@@ -1,4 +1,4 @@
-function out = B(K, xt1, xt2, hks, muks, xlim, ylim)
+function out = B(xa1, xa2, sks, xlim, ylim)
 %B Computes the 'B' vector for each agent 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -7,25 +7,33 @@ function out = B(K, xt1, xt2, hks, muks, xlim, ylim)
 % Updated 6/30/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-N = size(xt1, 2);
-sk = @(K1, K2) ck(K1, K2, xt1, xt2, hks(K1+1, K2+1), xlim, ylim) - muks(K1+1, K2+1);
+N = numel(xa1);
 
-% Calculate values of sk and lambda for each fourier term used
-[K2, K1] = meshgrid(0:K, 0:K);
-sks = arrayfun(sk, K1, K2);
+xa1 = xa1(:)';
+xa2 = xa2(:)';
+
+% Calculate values of lambda for each fourier term used
+[K2, K1] = meshgrid(0:size(sks, 1)-1, 0:size(sks, 2)-1);
 Las = 1./(1 + K1.^2 + K2.^2).^(3/2);
+Lasks = Las .* sks';
 
 % Add up fourier terms to get B vector for each agent
 out = zeros(2, N);
-for n1 = 1:K+1
-    for n2 = 1:K+1
-        k1 = K1(n1, n2)*pi/(xlim(2) - xlim(1));
-        k2 = K2(n1, n2)*pi/(ylim(2) - ylim(1));
-        for j = 1:N
-            out(1, j) = out(1, j) + Las(n1, n2)*sks(n1, n2) * ...
-                (-1/hks(n1, n2)*sin(k1*(xt1(end,j)-xlim(1))).*cos(k2*(xt2(end,j)-ylim(1))));
-            out(2, j) = out(2, j) + Las(n1, n2)*sks(n1, n2) * ...
-                (-1/hks(n1, n2)*cos(k1*(xt1(end,j)-xlim(1))).*sin(k2*(xt2(end,j)-ylim(1))));
+for n1 = 1:size(sks, 1)
+    for n2 = 1:size(sks, 2)
+        k1 = K1(n1, n2)*pi/diff(xlim);
+        k2 = K2(n1, n2)*pi/diff(ylim);
+        hk = diff(xlim)*diff(ylim);
+        if K1(n1, n2) > 0
+            hk = hk / 2;
         end
+        if K2(n1, n2) > 0
+            hk = hk / 2;
+        end
+        
+        out(1, :) = out(1, :) + Lasks(n1, n2) * ...
+            (-k1/hk*sin(k1*(xa1-xlim(1))).*cos(k2*(xa2-ylim(1))));
+        out(2, :) = out(2, :) + Lasks(n1, n2) * ...
+            (-k2/hk*cos(k1*(xa1-xlim(1))).*sin(k2*(xa2-ylim(1))));
     end
 end

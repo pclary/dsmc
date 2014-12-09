@@ -1,4 +1,4 @@
-function [xt1n, xt2n] = dsmcstep(xt1, xt2, muks, h, umax, hks, K, xlim, ...
+function [xt1n, xt2n] = dsmcstep(xt1, xt2, sks, h, umax, xlim, ...
     ylim, au, spherical)
 %DSMCSTEP Computes the new position of each agent using the DSMC algorithm
 
@@ -22,19 +22,19 @@ else
 end
 
 % Take an rk4 step
-Bs = B(K, xt1, xt2, hks, muks, xlim, ylim);
+Bs = B(xt1n0, xt2n0, sks, xlim, ylim);
 usn0 = usn(Bdir(Bs));
 xt1n1 = xt1n0 + h/2 * usn0(1, :);
 xt2n1 = xt2n0 + h/2 * usn0(2, :);
-Bs = B(K, [xt1; xt1n1], [xt2; xt2n1], hks, muks, xlim, ylim);
+Bs = B(xt1n1, xt2n1, sks, xlim, ylim);
 usn1 = usn(Bdir(Bs));
 xt1n2 = xt1n0 + h/2 * usn1(1, :);
 xt2n2 = xt2n0 + h/2 * usn1(2, :);
-Bs = B(K, [xt1; xt1n2], [xt2; xt2n2], hks, muks, xlim, ylim);
+Bs = B(xt1n2, xt2n2, sks, xlim, ylim);
 usn2 = usn(Bdir(Bs));
 xt1n3 = xt1n0 + h/2 * usn2(1, :);
 xt2n3 = xt2n0 + h/2 * usn2(2, :);
-Bs = B(K, [xt1; xt1n3], [xt2; xt2n3], hks, muks, xlim, ylim);
+Bs = B(xt1n3, xt2n3, sks, xlim, ylim);
 usn3 = usn(Bdir(Bs));
 xt1n = xt1n0 + h/6 * ...
     ( usn0(1, :) + ...

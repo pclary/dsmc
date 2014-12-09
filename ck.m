@@ -1,4 +1,4 @@
-function coeff = ck(K1, K2, xt1, xt2, hk, xlim, ylim)
+function coeff = ck(K1, K2, xt1, xt2, xlim, ylim)
 %CK Computes the (K1, K2)th Fourier coefficient ck for the given
 %trajectory data
 
@@ -8,11 +8,20 @@ function coeff = ck(K1, K2, xt1, xt2, hk, xlim, ylim)
 % Updated 6/30/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 N = size(xt1, 2);
 
 % Precompute K*pi/L
 k1 = K1*pi/(xlim(2) - xlim(1));
 k2 = K2*pi/(ylim(2) - ylim(1));
+
+hk = diff(xlim)*diff(ylim);
+if K1 > 0
+    hk = hk / 2;
+end
+if K2 > 0
+    hk = hk / 2;
+end
 
 coeff = zeros(N, 1);
 
