@@ -7,7 +7,7 @@ function [findtimes, targets, phi2, mur, c, xt1, xt2] = runsearch(settings, ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 9/20/2014
+% Updated 12/17/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Unpack settings
@@ -60,8 +60,6 @@ if ~outputsettings.overwrite
     outputsettings.mesohyperbolicity.filename = getunusedfilename(outputsettings.mesohyperbolicity.filename);
 end
 
-[K2, K1] = meshgrid(0:ngrid-1, 0:ngrid-1);
-
 % Sample distribution to get particles and targets
 [mu1, mu2] = sampledist(mu, x1(1, :), x2(:, 1), nsamplepts);
 [mu1tar, mu2tar] = sampledist(mu, x1(1, :), x2(:, 1), ntargets);
@@ -74,10 +72,16 @@ phi2 = [];
 xt1 = xt1i;
 xt2 = xt2i;
 
+% Initialize K arrays and coverage coefficients
+[K2, K1] = meshgrid(0:ngrid-1, 0:ngrid-1);
+cks = arrayfun(@(K1, K2)ck(K1, K2, xt1, xt2, xlim, ylim), K1, K2)';
+
+% Misc setup
 fcount = [0, 0, 0, 0, 0];
 stepnum = size(xt1, 1);
 t = 0;
 co = get(gca,'ColorOrder');
+clear lawnmowerstep
 
 % Used for abort button signalling with the GUI
 if ~isempty(aborthandle)
@@ -92,9 +96,6 @@ if ~isempty(pausebutton)
 else
     paused = @() 0;
 end
-
-cks = arrayfun(@(K1, K2)ck(K1, K2, xt1(1:stepnum, :), ...
-    xt2(1:stepnum, :), xlim, ylim), K1, K2)';
 
 % Step through simulation until a stop condition is met
 while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort()
@@ -112,14 +113,14 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     muks = logmuks(x1, x2, muks, lambda);
     
     % Use search algorithm to determine new agent positions
-    xt10 = xt1(1:stepnum, :);
-    xt20 = xt2(1:stepnum, :);
+    xt1n0 = xt1(stepnum, :);
+    xt2n0 = xt2(stepnum, :);
     if strcmp(algorithm, 'DSMC')
-        [xt1n, xt2n] = dsmcstep(xt10, xt20, cks - muks, h, umax, xlim, ylim, au, spherical);
+        [xt1n, xt2n] = dsmcstep(xt1n0, xt2n0, cks - muks, h, umax, xlim, ylim, au, spherical);
     elseif strcmp(algorithm, 'Lawnmower')
-        [xt1n, xt2n] = lawnmowerstep(xt10, xt20, h, umax, xlim, ylim, 3, spherical);
+        [xt1n, xt2n] = lawnmowerstep(xt1n0, xt2n0, h, umax, xlim, ylim, 3, spherical);
     elseif strcmp(algorithm, 'Random Walk')
-        [xt1n, xt2n] = randomwalkstep(xt10, xt20, h, umax, xlim, ylim, spherical);
+        [xt1n, xt2n] = randomwalkstep(xt1n0, xt2n0, h, umax, xlim, ylim, spherical);
     end
     xt1(stepnum+1, :) = xt1n;
     xt2(stepnum+1, :) = xt2n;

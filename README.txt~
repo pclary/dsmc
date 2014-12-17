@@ -1,9 +1,0 @@
-Instructions
-    Run 'gui.m' in Matlab to start the Search GUI.
-    
-
-Release Notes
-    7/14/2014: Added unit labels to parameters
-    7/11/2014: Added new figure output options
-    7/1/2014: Improved behavior regarding loading custom priors
-    6/30/2014: Cleaned up code and added more comments

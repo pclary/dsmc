@@ -1,23 +1,23 @@
-function [xt1n, xt2n] = lawnmowerstep(xt1, xt2, h, umax, xlim, ylim, nlines, spherical)
+function [xt1n, xt2n] = lawnmowerstep(xt1n0, xt2n0, dt, umax, xlim, ylim, nlines, spherical)
 %LAWNMOWERSTEP Computes the new position of each agent using a lawnmower
 %algorithm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 9/20/2014
+% Updated 12/17/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 persistent currentcolumn;
 
-N = size(xt1, 2);
+N = size(xt1n0, 2);
 xt1n = zeros(1, N);
 xt2n = zeros(1, N);
 
 % Initialize algorithm state
-if isempty(currentcolumn) || size(xt1, 1) == 1
+if isempty(currentcolumn)
     % For each agent, set currentcolumn to the nearest column
-    currentcolumn = floor((xt1(1, :) - xlim(1)) / (xlim(2) - xlim(1)) * (nlines - 1));
+    currentcolumn = floor((xt1n0(1, :) - xlim(1)) / (xlim(2) - xlim(1)) * (nlines - 1));
 end
 
 for i = 1:N
@@ -29,8 +29,8 @@ for i = 1:N
     end
     
     % Switch directions if beyond the vertical boundaries
-    if (ydir > 0 && xt2(end, i) > ylim(2)) || ...
-        (ydir < 0 && xt2(end, i) < ylim(1))
+    if (ydir > 0 && xt2n0(i) > ylim(2)) || ...
+        (ydir < 0 && xt2n0(i) < ylim(1))
         currentcolumn(i) = currentcolumn(i) + 1;
         ydir = -ydir;
     end
@@ -57,20 +57,20 @@ for i = 1:N
     % center even when disturbed by a velocity field
     u = [0, ydir];
     kp = 2;
-    u(1) = kp*(linecenter - xt1(end, i))/((xlim(2)-xlim(1))/nlines/2);
+    u(1) = kp*(linecenter - xt1n0(i))/((xlim(2)-xlim(1))/nlines/2);
     
     u = u/sqrt(sum(u.^2));
     
     % Adjust for spherical coordinates
-    if spherical
+    if ~isempty(spherical) && spherical
         adj = sqrt(u(2).^2+(u(1)./cosd(xt2(i))).^2);
     else
         adj = 1;
     end
     
     % Use an euler step to compute the new position
-    xt1n(i) = xt1(end, i) + h*umax*u(1)*adj;
-    xt2n(i) = xt2(end, i) + h*umax*u(2)*adj;
+    xt1n(i) = xt1n0(i) + dt*umax*u(1)*adj;
+    xt2n(i) = xt2n0(i) + dt*umax*u(2)*adj;
 end
 
 end
