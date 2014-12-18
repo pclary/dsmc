@@ -30,7 +30,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 17-Dec-2014 16:48:29
+% Last Modified by GUIDE v2.5 17-Dec-2014 17:52:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -104,14 +104,14 @@ settings.mhupper = 4/(settings.mhT)^2;
 settings.mhlower = 0;
 settings.starttime = now;
 settings.datetitle = 0;
-settings.v1 = @(t, x, y) -0.1*sin(2*pi*x).*cos(2*pi*y) + ...
+settings.vx = @(t, x, y) -0.1*sin(2*pi*x).*cos(2*pi*y) + ...
     -0.01*cos(2*pi*t)*sin(2*pi*(x-0.25)).*cos(2*pi*(y-0.25));
-settings.v2 = @(t, x, y) 0.1*cos(2*pi*x).*sin(2*pi*y) + ...
+settings.vy = @(t, x, y) 0.1*cos(2*pi*x).*sin(2*pi*y) + ...
     0.01*cos(2*pi*t)*cos(2*pi*(x-0.25)).*sin(2*pi*(y-0.25));
 settings.agentuncertainty = 0.1;
 settings.targetuncertainty = 0.1;
 handles.settings = settings;
-[settings.mu, settings.x1, settings.x2] = generatemu(handles);
+settings.mu = generatemu(handles);
 
 data.findtimes = {};
 data.targets = {};
@@ -190,8 +190,8 @@ set(handles.edit_gaussianstd, 'String', num2str(settings.gaussianstd));
 set(handles.edit_mhT, 'String', num2str(settings.mhT));
 set(handles.edit_mhupper, 'String', num2str(settings.mhupper));
 set(handles.edit_mhlower, 'String', num2str(settings.mhlower));
-set(handles.edit_v1, 'String', char(settings.v1));
-set(handles.edit_v2, 'String', char(settings.v2));
+set(handles.edit_vx, 'String', char(settings.vx));
+set(handles.edit_vy, 'String', char(settings.vy));
 set(handles.edit_agentuncertainty, 'String', num2str(settings.agentuncertainty));
 set(handles.edit_targetuncertainty, 'String', num2str(settings.targetuncertainty));
 set(handles.edit_agentuncertainty, 'String', num2str(settings.agentuncertainty));
@@ -234,8 +234,8 @@ function [vx, vy] = getvelfunction(handles)
 % interpolation mode
 
 if get(handles.radio_expression, 'Value') == 1
-    vx = handles.settings.v1;
-    vy = handles.settings.v2;
+    vx = handles.settings.vx;
+    vy = handles.settings.vy;
 elseif isfield(handles, 'veldata')
     veldata = handles.veldata;
     rearth = 6371e3; % hardcoded earth radius -- appears a few other places...
@@ -248,23 +248,23 @@ else
     vy = @(x, y, t) 0;
 end
 
-function [mu, x1, x2] = generatemu(handles)
+function mu = generatemu(handles)
 % Generates initial particle distribution according to the selected method
 
 settings = handles.settings;
-x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
-x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
-[x1, x2] = meshgrid(x1, x2);
+x = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
+y = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
+[x, y] = meshgrid(x, y);
 if strcmp(settings.mutype, 'Uniform')
-    mu = ones(size(x1));
+    mu = ones(size(x));
 elseif strcmp(settings.mutype, 'Gaussian')
     mu = 1/settings.gaussianstd/sqrt(2*pi) * ...
-        exp(-((x1 - settings.gaussianx).^2 + (x2 - settings.gaussiany).^2)/2/settings.gaussianstd^2);
+        exp(-((x - settings.gaussianx).^2 + (y - settings.gaussiany).^2)/2/settings.gaussianstd^2);
 elseif strcmp(settings.mutype, 'Mesohyperbolicity')
     [vx, vy] = getvelfunction(handles);
     mh = mesohyperbolicity(vx, vy, settings.xlim, ...
         settings.ylim, 0, settings.mhT, settings.cres);
-    mu = zeros(size(x1));
+    mu = zeros(size(x));
     if settings.mhlower < settings.mhupper
         mu(mh >= settings.mhlower & mh <= settings.mhupper) = 1;
     else
@@ -272,27 +272,27 @@ elseif strcmp(settings.mutype, 'Mesohyperbolicity')
     end
 end
 if settings.spherical
-    mu = mu.*cosd(x2);
+    mu = mu.*cosd(y);
 end
 
 function rendermu(handles)
 % Renders a preview of the initial particle distribution
 
 settings = handles.settings;
-x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
-x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
-[mu1, mu2] = sampledist(settings.mu, 1000, x1, x2);
-plot(handles.axes_mu, mu1, mu2, '.', 'MarkerSize', 2);
+[mux, muy] = sampledist(settings.mu, 1000, settings.xlim, settings.ylim);
+plot(handles.axes_mu, mux, muy, '.', 'MarkerSize', 2);
 axis(handles.axes_mu, 'equal');
 axis(handles.axes_mu, [settings.xlim, settings.ylim]);
 set(handles.axes_mu, 'XTick', []);
 set(handles.axes_mu, 'YTick', []);
 if strcmp(settings.mutype, 'Mesohyperbolicity')
-    [x1, x2] = meshgrid(x1, x2);
+    x = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
+    y = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
+    [x, y] = meshgrid(x, y);
     [vx, vy] = getvelfunction(handles);
     mh = mesohyperbolicity(vx, vy, settings.xlim, ...
         settings.ylim, 0, settings.mhT, settings.cres);
-    surf(handles.axes_mh, x1, x2, mh, 'EdgeColor', 'none');
+    surf(handles.axes_mh, x, y, mh, 'EdgeColor', 'none');
     axis(handles.axes_mh, 'equal');
     axis(handles.axes_mh, [settings.xlim, settings.ylim]);
     caxis(handles.axes_mh, [-2/(settings.mhT)^2, 6/(settings.mhT)^2]);
@@ -330,10 +330,9 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
         findradius = settings.findradius;
     end
     
-    x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
-    x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
-    [xt1i, xt2i] = sampledist(settings.mu, settings.N, x1, x2, @(n) rand(n, 1));
-    xt1i = xt1i'; xt2i = xt2i';
+    [xti, yti] = sampledist(settings.mu, settings.N, settings.xlim, ...
+        settings.ylim, @(n) rand(n, 1));
+    xti = xti'; yti = yti';
     
     if isfield(handles, 'veldata')
         iland = find(isnan(handles.veldata.water_u) | isnan(handles.veldata.water_v));
@@ -349,10 +348,10 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     settings.stopallfound = 0;
     settings.findradius = findradius;
     settings.umax = umax;
-    settings.v1 = vx;
-    settings.v2 = vy;
-    settings.xt1i = xt1i;
-    settings.xt2i = xt2i;
+    settings.vx = vx;
+    settings.vy = vy;
+    settings.xti = xti;
+    settings.yti = yti;
     settings.xland = xland;
     settings.yland = yland;
     
@@ -361,14 +360,14 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     ax.mu = handles.axes_smu;
     ax.coverage = handles.axes_scov;
     
-    [~, ~, phi2, mur, c, xt1, xt2] = runsearch(settings, outputsettings, ...
+    [~, ~, phi2, mur, c, xt, yt] = runsearch(settings, outputsettings, ...
         ax, handles.btn_singleabort, handles.cbox_spause);
     
     data.convergence = [data.convergence; {phi2}];
     data.particledist = [data.particledist; {mur}];
     data.coveragedist = [data.coveragedist; {c}];
-    data.xpaths = [data.xpaths; {xt1}];
-    data.ypaths = [data.ypaths; {xt2}];
+    data.xpaths = [data.xpaths; {xt}];
+    data.ypaths = [data.ypaths; {yt}];
     data.runsettings = [data.runsettings; {settings}];
     handles.data = data;
     guidata(hObject, handles);
@@ -400,10 +399,9 @@ end
 while getappdata(handles.btn_singleabort, 'Abort') == 0
     cla(handles.axes_mmain);
     
-    x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
-    x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
-    [xt1i, xt2i] = sampledist(settings.mu, settings.N, x1, x2, @(n) rand(n, 1));
-    xt1i = xt1i'; xt2i = xt2i';
+    [xti, yti] = sampledist(settings.mu, settings.N, settings.xlim, ...
+        settings.ylim, @(n) rand(n, 1));
+    xti = xti'; yti = yti';
     
     if isfield(handles, 'veldata')
         iland = find(isnan(handles.veldata.water_u(:,:,1)) | isnan(handles.veldata.water_v(:,:,1)));
@@ -418,10 +416,10 @@ while getappdata(handles.btn_singleabort, 'Abort') == 0
     settings.stopallfound = 1;
     settings.findradius = findradius;
     settings.umax = umax;
-    settings.v1 = vx;
-    settings.v2 = vy;
-    settings.xt1i = xt1i;
-    settings.xt2i = xt2i;
+    settings.vx = vx;
+    settings.vy = vy;
+    settings.xti = xti;
+    settings.yti = yti;
     settings.xland = xland;
     settings.yland = yland;
     
@@ -576,11 +574,11 @@ function uipanel_velradio_SelectionChangeFcn(hObject, eventdata, handles)
 
 switch eventdata.NewValue
     case handles.radio_expression
-        set(handles.edit_v1,'Enable','On');
-        set(handles.edit_v2,'Enable','On');
+        set(handles.edit_vx,'Enable','On');
+        set(handles.edit_vy,'Enable','On');
     case handles.radio_interpolation
-        set(handles.edit_v1,'Enable','Off');
-        set(handles.edit_v2,'Enable','Off');
+        set(handles.edit_vx,'Enable','Off');
+        set(handles.edit_vy,'Enable','Off');
 end
 
 function btn_singleabort_Callback(hObject, eventdata, handles)
@@ -671,10 +669,7 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.cres = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
@@ -709,32 +704,26 @@ str = contents{get(hObject,'Value')};
 handles.settings.algorithm = str;
 guidata(hObject, handles);
 
-function edit_v1_Callback(hObject, eventdata, handles)
+function edit_vx_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', char(val));
-handles.settings.v1 = val;
+handles.settings.vx = val;
 if strcmp(handles.settings.mutype, 'Mesohyperbolicity')
-    [mu, x1, x2] = generatemu(handles);
-    handles.settings.mu = mu;
-    handles.settings.x1 = x1;
-    handles.settings.x2 = x2;
+    handles.settings.mu = generatemu(handles);
     rendermu(handles);
 end
 guidata(hObject, handles);
 
-function edit_v2_Callback(hObject, eventdata, handles)
+function edit_vy_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', char(val));
-handles.settings.v2 = val;
+handles.settings.vy = val;
 if strcmp(handles.settings.mutype, 'Mesohyperbolicity')
-    [mu, x1, x2] = generatemu(handles);
-    handles.settings.mu = mu;
-    handles.settings.x1 = x1;
-    handles.settings.x2 = x2;
+    handles.settings.mu = generatemu(handles);
     rendermu(handles);
 end
 guidata(hObject, handles);
@@ -760,10 +749,7 @@ function popup_mutype_Callback(hObject, eventdata, handles)
 contents = cellstr(get(hObject,'String'));
 str = contents{get(hObject,'Value')};
 handles.settings.mutype = str;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 settings = handles.settings;
 if strcmp(settings.mutype, 'Gaussian')
@@ -784,10 +770,7 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.gaussianstd = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
@@ -797,10 +780,7 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.gaussianx = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
@@ -810,10 +790,7 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.gaussiany = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
@@ -823,10 +800,7 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.mhlower = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
@@ -836,10 +810,7 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.mhupper = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
@@ -849,10 +820,7 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.mhT = val;
-[mu, x1, x2] = generatemu(handles);
-handles.settings.mu = mu;
-handles.settings.x1 = x1;
-handles.settings.x2 = x2;
+handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
@@ -864,10 +832,7 @@ val = eval(str);
     set(hObject, 'String', num2str(val));
     handles.settings.xlim(2) = val;
     guidata(hObject, handles);
-    [mu, x1, x2] = generatemu(handles);
-    handles.settings.mu = mu;
-    handles.settings.x1 = x1;
-    handles.settings.x2 = x2;
+    handles.settings.mu = generatemu(handles);
     rendermu(handles);
 %end
 
@@ -879,10 +844,7 @@ val = eval(str);
     set(hObject, 'String', num2str(val));
     handles.settings.xlim(1) = val;
     guidata(hObject, handles);
-    [mu, x1, x2] = generatemu(handles);
-    handles.settings.mu = mu;
-    handles.settings.x1 = x1;
-    handles.settings.x2 = x2;
+    handles.settings.mu = generatemu(handles);
     rendermu(handles);
 %end
 
@@ -894,10 +856,7 @@ val = eval(str);
     set(hObject, 'String', num2str(val));
     handles.settings.ylim(2) = val;
     guidata(hObject, handles);
-    [mu, x1, x2] = generatemu(handles);
-    handles.settings.mu = mu;
-    handles.settings.x1 = x1;
-    handles.settings.x2 = x2;
+    handles.settings.mu = generatemu(handles);
     rendermu(handles);
 %end
 
@@ -909,10 +868,7 @@ val = eval(str);
     set(hObject, 'String', num2str(val));
     handles.settings.ylim(1) = val;
     guidata(hObject, handles);
-    [mu, x1, x2] = generatemu(handles);
-    handles.settings.mu = mu;
-    handles.settings.x1 = x1;
-    handles.settings.x2 = x2;
+    handles.settings.mu = generatemu(handles);
     rendermu(handles);
 %end
 
@@ -1224,12 +1180,12 @@ function popup_algorithm_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_v1_CreateFcn(hObject, eventdata, handles)
+function edit_vx_CreateFcn(hObject, eventdata, handles)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_v2_CreateFcn(hObject, eventdata, handles)
+function edit_vy_CreateFcn(hObject, eventdata, handles)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');

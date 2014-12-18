@@ -1,10 +1,10 @@
-function [xp, yp] = sampledist(dist, x, y, n, sampfun)
+function [xp, yp] = sampledist(dist, n, x, y, sampfun)
 %SAMPLEDIST Samples a probability distribution
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 6/30/2014
+% Updated 12/17/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Sample using the supplied sample function or the default halton sequence;
@@ -17,6 +17,15 @@ else
     s2 = sampfun(n);
 end
 
+% Set output domain
+if nargin < 4 || (isempty(x) && isempty(y))
+    x = linspace(0, 1, size(dist, 2));
+    y = linspace(0, 1, size(dist, 1));
+elseif numel(x) == 2 && numel(y) == 2
+    x = linspace(x(1), x(2), size(dist, 2));
+    y = linspace(y(1), y(2), size(dist, 1));
+end
+    
 % Construct an approximate 2D cumulative probability density function
 % respresenting the distribution
 w = cumtrapz(trapz(dist, 2));

@@ -1,4 +1,4 @@
-function out = B(xa1, xa2, sks, xlim, ylim)
+function out = B(xa1, xa2, Lasks, xlim, ylim)
 %B Computes the 'B' vector for each agent 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -11,11 +11,6 @@ N = numel(xa1);
 
 xa1 = xa1(:)';
 xa2 = xa2(:)';
-
-% Calculate values of lambda for each fourier term used
-[K2, K1] = meshgrid(0:size(sks, 1)-1, 0:size(sks, 2)-1);
-Las = 1./(1 + K1.^2 + K2.^2).^(3/2);
-Lasks = Las .* sks';
 
 % Add up fourier terms to get B vector for each agent
 out = zeros(2, N);
