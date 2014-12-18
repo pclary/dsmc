@@ -25,12 +25,12 @@ function varargout = gui(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 9/20/2014
+% Updated 12/17/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 11-Jul-2014 00:47:26
+% Last Modified by GUIDE v2.5 17-Dec-2014 16:48:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -88,8 +88,8 @@ settings.tstop = 50;
 settings.lambda = 0.5;
 settings.algorithm = 'DSMC';
 settings.spherical = 0;
-settings.K = 20;
-settings.ngrid = 40;
+settings.mures = 32;
+settings.cres = 128;
 settings.h = 1/30;
 settings.nsamplepts = 10000;
 settings.ntargets = 100;
@@ -177,8 +177,8 @@ set(handles.edit_umax, 'String', num2str(settings.umax));
 set(handles.edit_tstop, 'String', num2str(settings.tstop));
 set(handles.edit_lambda, 'String', num2str(settings.lambda));
 set(handles.cbox_spherical, 'Value', settings.spherical);
-set(handles.edit_K, 'String', num2str(settings.K));
-set(handles.edit_ngrid, 'String', num2str(settings.ngrid));
+set(handles.edit_mures, 'String', num2str(settings.mures));
+set(handles.edit_cres, 'String', num2str(settings.cres));
 set(handles.edit_h, 'String', num2str(settings.h));
 set(handles.edit_nsamplepts, 'String', num2str(settings.nsamplepts));
 set(handles.edit_ntargets, 'String', num2str(settings.ntargets));
@@ -252,8 +252,8 @@ function [mu, x1, x2] = generatemu(handles)
 % Generates initial particle distribution according to the selected method
 
 settings = handles.settings;
-x1 = linspace(settings.xlim(1), settings.xlim(2), settings.ngrid);
-x2 = linspace(settings.ylim(1), settings.ylim(2), settings.ngrid);
+x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
+x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
 [x1, x2] = meshgrid(x1, x2);
 if strcmp(settings.mutype, 'Uniform')
     mu = ones(size(x1));
@@ -263,7 +263,7 @@ elseif strcmp(settings.mutype, 'Gaussian')
 elseif strcmp(settings.mutype, 'Mesohyperbolicity')
     [vx, vy] = getvelfunction(handles);
     mh = mesohyperbolicity(vx, vy, settings.xlim, ...
-        settings.ylim, 0, settings.mhT, settings.ngrid);
+        settings.ylim, 0, settings.mhT, settings.cres);
     mu = zeros(size(x1));
     if settings.mhlower < settings.mhupper
         mu(mh >= settings.mhlower & mh <= settings.mhupper) = 1;
@@ -279,9 +279,9 @@ function rendermu(handles)
 % Renders a preview of the initial particle distribution
 
 settings = handles.settings;
-x1 = linspace(settings.xlim(1), settings.xlim(2), settings.ngrid);
-x2 = linspace(settings.ylim(1), settings.ylim(2), settings.ngrid);
-[mu1, mu2] = sampledist(settings.mu, x1, x2, 1000);
+x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
+x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
+[mu1, mu2] = sampledist(settings.mu, 1000, x1, x2);
 plot(handles.axes_mu, mu1, mu2, '.', 'MarkerSize', 2);
 axis(handles.axes_mu, 'equal');
 axis(handles.axes_mu, [settings.xlim, settings.ylim]);
@@ -291,7 +291,7 @@ if strcmp(settings.mutype, 'Mesohyperbolicity')
     [x1, x2] = meshgrid(x1, x2);
     [vx, vy] = getvelfunction(handles);
     mh = mesohyperbolicity(vx, vy, settings.xlim, ...
-        settings.ylim, 0, settings.mhT, settings.ngrid);
+        settings.ylim, 0, settings.mhT, settings.cres);
     surf(handles.axes_mh, x1, x2, mh, 'EdgeColor', 'none');
     axis(handles.axes_mh, 'equal');
     axis(handles.axes_mh, [settings.xlim, settings.ylim]);
@@ -330,9 +330,9 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
         findradius = settings.findradius;
     end
     
-    x1 = linspace(settings.xlim(1), settings.xlim(2), settings.ngrid);
-    x2 = linspace(settings.ylim(1), settings.ylim(2), settings.ngrid);
-    [xt1i, xt2i] = sampledist(settings.mu, x1, x2, settings.N, @(n) rand(n, 1));
+    x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
+    x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
+    [xt1i, xt2i] = sampledist(settings.mu, settings.N, x1, x2, @(n) rand(n, 1));
     xt1i = xt1i'; xt2i = xt2i';
     
     if isfield(handles, 'veldata')
@@ -400,9 +400,9 @@ end
 while getappdata(handles.btn_singleabort, 'Abort') == 0
     cla(handles.axes_mmain);
     
-    x1 = linspace(settings.xlim(1), settings.xlim(2), settings.ngrid);
-    x2 = linspace(settings.ylim(1), settings.ylim(2), settings.ngrid);
-    [xt1i, xt2i] = sampledist(settings.mu, x1, x2, settings.N, @(n) rand(n, 1));
+    x1 = linspace(settings.xlim(1), settings.xlim(2), settings.cres);
+    x2 = linspace(settings.ylim(1), settings.ylim(2), settings.cres);
+    [xt1i, xt2i] = sampledist(settings.mu, settings.N, x1, x2, @(n) rand(n, 1));
     xt1i = xt1i'; xt2i = xt2i';
     
     if isfield(handles, 'veldata')
@@ -641,12 +641,12 @@ set(hObject, 'String', num2str(val));
 handles.settings.ntargets = val;
 guidata(hObject, handles);
 
-function edit_K_Callback(hObject, eventdata, handles)
+function edit_mures_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
-handles.settings.K = val;
+handles.settings.mures = val;
 guidata(hObject, handles);
 
 function edit_findradius_Callback(hObject, eventdata, handles)
@@ -665,12 +665,12 @@ set(hObject, 'String', num2str(val));
 handles.settings.findtimeconst = val;
 guidata(hObject, handles);
 
-function edit_ngrid_Callback(hObject, eventdata, handles)
+function edit_cres_Callback(hObject, eventdata, handles)
 
 str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
-handles.settings.ngrid = val;
+handles.settings.cres = val;
 [mu, x1, x2] = generatemu(handles);
 handles.settings.mu = mu;
 handles.settings.x1 = x1;
@@ -1184,7 +1184,7 @@ function edit_ntargets_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_K_CreateFcn(hObject, eventdata, handles)
+function edit_mures_CreateFcn(hObject, eventdata, handles)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
@@ -1199,7 +1199,7 @@ function edit_findtimeconst_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_ngrid_CreateFcn(hObject, eventdata, handles)
+function edit_cres_CreateFcn(hObject, eventdata, handles)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
