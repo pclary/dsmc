@@ -116,7 +116,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     xtn0 = xt(stepnum, :);
     ytn0 = yt(stepnum, :);
     if strcmp(algorithm, 'DSMC')
-        [xtn, ytn] = dsmcstep(xtn0, ytn0, cks, muks, h, umax, xlim, ylim, au, spherical);
+        [xtn, ytn] = dsmcstep(xtn0, ytn0, h, umax, cks, muks, stepnum, cres, xlim, ylim, au, spherical);
     elseif strcmp(algorithm, 'Lawnmower')
         [xtn, ytn] = lawnmowerstep(xtn0, ytn0, h, umax, xlim, ylim, 3, spherical);
     elseif strcmp(algorithm, 'Random Walk')
@@ -159,10 +159,10 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     end
     
     % Plot s
-    plots(axsurf, cks - muks, xlim, ylim, cres);
+    plots(axsurf, Las.*sks, cres, xlim, ylim);
     
     % Plot grad
-    plotgrad(axgrad, cks - muks, xlim, ylim, cres);
+    plotgrad(axgrad, Las.*sks, cres, xlim, ylim);
     
     % Plot log density of particles
     if isfield(ax, 'mu') && ~isempty(ax.mu)
@@ -318,11 +318,8 @@ caxis(ax, [-2/(T)^2, 6/(T)^2]);
 colorbar('peer', ax, 'EastOutside');
 
 
-function plots(ax, sks, xlim, ylim, cres)
+function plots(ax, Lasks, cres, xlim, ylim)
 
-[K1, K2] = meshgrid(0:cres-1, 0:cres-1);
-Las = 1./(1 + K1.^2 + K2.^2).^(3/2);
-Lasks = Las .* sks;
 s = idct2(Lasks);
 x = linspace(xlim(1), xlim(2), cres);
 y = linspace(ylim(1), ylim(2), cres);
@@ -331,17 +328,17 @@ surf(ax, x, y, s, 'EdgeColor', 'none');
 title(ax, 'DSMC surface');
 
 
-function plotgrad(ax, sks, xlim, ylim)
+function plotgrad(ax, Lasks, cres, xlim, ylim)
 
 x = linspace(xlim(1), xlim(2), 22);
 x = x(2:end-1);
 y = linspace(ylim(1), ylim(2), 22);
 y = y(2:end-1);
-[xa, ya] = meshgrid(y, x);
+[xa, ya] = meshgrid(x, y);
 
 Bdir = @(Bs) -bsxfun(@rdivide, Bs, sqrt(sum((Bs).^2, 1)));
 
-tmp = Bdir(B(xa(:), ya(:), sks, xlim, ylim));
+tmp = Bdir(B(xa(:), ya(:), Lasks, cres, xlim, ylim));
 u = tmp(1, :);
 v = tmp(2, :);
 

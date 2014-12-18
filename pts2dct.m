@@ -1,4 +1,4 @@
-function coeffs = pts2dct(xt, yt, res, xlim, ylim)
+function coeffs = pts2dct(x, y, res, xlim, ylim)
 %PTS2DCT Computes the DCT coefficients for the given point data
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -7,10 +7,10 @@ function coeffs = pts2dct(xt, yt, res, xlim, ylim)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Sort points into bins
-x = linspace(xlim(1), xlim(2), res);
-y = linspace(ylim(1), ylim(2), res);
-bins = hist3([xt(:), yt(:)], {x, y});
+xbin = linspace(xlim(1), xlim(2), res);
+ybin = linspace(ylim(1), ylim(2), res);
+bins = hist3([x(:), y(:)], {xbin, ybin})';
 
 % Normalize
-bins = bins / trapz(trapz(bins)) * diff(xlim)*diff(ylim)/res^2;
+bins = bins / (trapz(trapz(bins))/res^2);
 coeffs = dct2(bins);

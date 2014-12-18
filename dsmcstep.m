@@ -1,4 +1,4 @@
-function [xtn, ytn] = dsmcstep(xtn0, ytn0, cks, muks, dt, umax, ...
+function [xtn, ytn] = dsmcstep(xtn0, ytn0, dt, umax, cks, muks, nsteps, cres, ...
     xlim, ylim, au, spherical)
 %DSMCSTEP Computes the new position of each agent using the DSMC algorithm
 
@@ -20,24 +20,26 @@ else
 end
 
 % Calculate values of lambda for each fourier term used
-[K2, K1] = meshgrid(0:size(sks, 1)-1, 0:size(sks, 2)-1);
+[K1, K2] = meshgrid(0:cres-1, 0:cres-1);
 Las = 1./(1 + K1.^2 + K2.^2).^(3/2);
 
 % Take an rk4 step
-Bs = B(xtn0, ytn0, Las*(cks - muks), xlim, ylim);
+Bs = B(xtn0, ytn0, Las.*(cks - muks), cres, xlim, ylim);
 usn0 = usn(Bdir(Bs));
 xtn1 = xtn0 + dt/2 * usn0(1, :);
 ytn1 = ytn0 + dt/2 * usn0(2, :);
-
-Bs = B(xtn1, ytn1, Las*(cks2 - muks), xlim, ylim);
+cks2 = (cks + pts2dct(xtn1, ytn1, cres, xlim, ylim))*nsteps/(nsteps+1);
+Bs = B(xtn1, ytn1, Las.*(cks2 - muks), cres, xlim, ylim);
 usn1 = usn(Bdir(Bs));
 xtn2 = xtn0 + dt/2 * usn1(1, :);
 ytn2 = ytn0 + dt/2 * usn1(2, :);
-Bs = B(xtn2, ytn2, Las*(cks2 - muks), xlim, ylim);
+cks2 = (cks + pts2dct(xtn2, ytn2, cres, xlim, ylim))*nsteps/(nsteps+1);
+Bs = B(xtn2, ytn2, Las.*(cks2 - muks), cres, xlim, ylim);
 usn2 = usn(Bdir(Bs));
 xtn3 = xtn0 + dt/2 * usn2(1, :);
 ytn3 = ytn0 + dt/2 * usn2(2, :);
-Bs = B(xtn3, ytn3, Las*(cks2 - muks), xlim, ylim);
+cks2 = (cks + pts2dct(xtn3, ytn3, cres, xlim, ylim))*nsteps/(nsteps+1);
+Bs = B(xtn3, ytn3, Las.*(cks2 - muks), cres, xlim, ylim);
 usn3 = usn(Bdir(Bs));
 xtn = xtn0 + dt/6 * (usn0(1, :) + 2*usn1(1, :) + 2*usn2(1, :) + usn3(1, :));
 ytn = ytn0 + dt/6 * (usn0(2, :) + 2*usn1(2, :) + 2*usn2(2, :) + usn3(2, :));
