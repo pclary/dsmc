@@ -25,7 +25,7 @@ function varargout = gui(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/17/2014
+% Updated 12/19/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Edit the above text to modify the response to help gui
@@ -85,16 +85,17 @@ settings.xlim = [0, 1];
 settings.ylim = [0, 0.5];
 settings.umax = 1;
 settings.tstop = 50;
-settings.lambda = 0.5;
+settings.lambda = 0.25;
 settings.algorithm = 'DSMC';
 settings.spherical = 0;
 settings.mures = 32;
 settings.cres = 128;
-settings.h = 1/30;
+settings.h = 1/100;
 settings.nsamplepts = 10000;
-settings.ntargets = 100;
-settings.findradius = 0.03;
-settings.findtimeconst = 0.02;
+settings.ntargets = 1000;
+settings.findradius = 0.01;
+settings.findtimeconst = 0.05;
+settings.stopallfound = 0;
 settings.mutype = 'Uniform';
 settings.gaussianx = 0.5;
 settings.gaussiany = 0.25;
@@ -104,14 +105,20 @@ settings.mhupper = 4/(settings.mhT)^2;
 settings.mhlower = 0;
 settings.starttime = now;
 settings.datetitle = 0;
-settings.vx = @(t, x, y) -0.1*sin(2*pi*x).*cos(2*pi*y) + ...
-    -0.01*cos(2*pi*t)*sin(2*pi*(x-0.25)).*cos(2*pi*(y-0.25));
-settings.vy = @(t, x, y) 0.1*cos(2*pi*x).*sin(2*pi*y) + ...
-    0.01*cos(2*pi*t)*cos(2*pi*(x-0.25)).*sin(2*pi*(y-0.25));
+settings.vx = @(t, x, y) -0.01*sin(2*pi*x).*cos(2*pi*y) + ...
+    -0.001*cos(2*pi*t)*sin(2*pi*(x-0.25)).*cos(2*pi*(y-0.25));
+settings.vy = @(t, x, y) 0.01*cos(2*pi*x).*sin(2*pi*y) + ...
+    0.001*cos(2*pi*t)*cos(2*pi*(x-0.25)).*sin(2*pi*(y-0.25));
 settings.agentuncertainty = 0.1;
 settings.targetuncertainty = 0.1;
 handles.settings = settings;
 settings.mu = generatemu(handles);
+[xti, yti] = sampledist(settings.mu, settings.N, settings.xlim, ...
+    settings.ylim, @(n) rand(n, 1));
+settings.xti = xti'; 
+settings.yti = yti';
+settings.xland = [];
+settings.yland = [];
 
 data.findtimes = {};
 data.targets = {};
@@ -354,6 +361,7 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     settings.yti = yti;
     settings.xland = xland;
     settings.yland = yland;
+    handles.settings = settings;
     
     ax.main = handles.axes_smain;
     ax.convergence = handles.axes_saux;
@@ -422,6 +430,7 @@ while getappdata(handles.btn_singleabort, 'Abort') == 0
     settings.yti = yti;
     settings.xland = xland;
     settings.yland = yland;
+    handles.settings = settings;
     
     ax.main = handles.axes_mmain;
     

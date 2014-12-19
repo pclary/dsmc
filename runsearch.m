@@ -3,11 +3,13 @@ function [findtimes, targets, phi2, mur, c, xt, yt] = runsearch(settings, ...
 %RUNSEARCH Runs a search using the specified algorithm
 %   Returns the time at which each target was found and a vector of the
 %   number of remaining targets at each detection time
+%   
+%   Only the settings struct is required
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/17/2014
+% Updated 12/18/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Unpack settings
@@ -38,25 +40,42 @@ yti = settings.yti;
 xland = settings.xland;
 yland = settings.yland;
 
-figure;
-axgrad = gca;
+if nargin < 2
+    outputsettings = [];
+end
+if nargin < 3
+    ax = struct();
+end
+if nargin < 4
+    aborthandle = [];
+end
+if nargin < 5
+    pausebutton = [];
+end
 
-figure;
-axsurf = gca;
-
-% Append (1), (2), etc to output file names to avoid overwriting old output
-outputsettings.main.filename = processfilename(outputsettings.main.filename, outputsettings.main.animation);
-outputsettings.convergence.filename = processfilename(outputsettings.convergence.filename, outputsettings.convergence.animation);
-outputsettings.mu.filename = processfilename(outputsettings.mu.filename, outputsettings.mu.animation);
-outputsettings.coverage.filename = processfilename(outputsettings.coverage.filename, outputsettings.coverage.animation);
-outputsettings.mesohyperbolicity.filename = processfilename(outputsettings.mesohyperbolicity.filename, outputsettings.mesohyperbolicity.animation);
-
-if ~outputsettings.overwrite
-    outputsettings.main.filename = getunusedfilename(outputsettings.main.filename);
-    outputsettings.convergence.filename = getunusedfilename(outputsettings.convergence.filename);
-    outputsettings.mu.filename = getunusedfilename(outputsettings.mu.filename);
-    outputsettings.coverage.filename = getunusedfilename(outputsettings.coverage.filename);
-    outputsettings.mesohyperbolicity.filename = getunusedfilename(outputsettings.mesohyperbolicity.filename);
+% Set up output
+if ~isempty(outputsettings)
+    outfig = figure;
+    axoutput = gca;
+    set(outfig, 'Renderer', 'zbuffer');
+    set(outfig, 'Visible', 'off');
+    
+    % Append (1), (2), etc to output file names to avoid overwriting old output
+    if ~isempty(outputsettings)
+        outputsettings.main.filename = processfilename(outputsettings.main.filename, outputsettings.main.animation);
+        outputsettings.convergence.filename = processfilename(outputsettings.convergence.filename, outputsettings.convergence.animation);
+        outputsettings.mu.filename = processfilename(outputsettings.mu.filename, outputsettings.mu.animation);
+        outputsettings.coverage.filename = processfilename(outputsettings.coverage.filename, outputsettings.coverage.animation);
+        outputsettings.mesohyperbolicity.filename = processfilename(outputsettings.mesohyperbolicity.filename, outputsettings.mesohyperbolicity.animation);
+        
+        if ~outputsettings.overwrite
+            outputsettings.main.filename = getunusedfilename(outputsettings.main.filename);
+            outputsettings.convergence.filename = getunusedfilename(outputsettings.convergence.filename);
+            outputsettings.mu.filename = getunusedfilename(outputsettings.mu.filename);
+            outputsettings.coverage.filename = getunusedfilename(outputsettings.coverage.filename);
+            outputsettings.mesohyperbolicity.filename = getunusedfilename(outputsettings.mesohyperbolicity.filename);
+        end
+    end
 end
 
 % Sample distribution to get particles and targets
@@ -116,7 +135,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     xtn0 = xt(stepnum, :);
     ytn0 = yt(stepnum, :);
     if strcmp(algorithm, 'DSMC')
-        [xtn, ytn] = dsmcstep(xtn0, ytn0, h, umax, cks, muks, stepnum, cres, xlim, ylim, au, spherical);
+        [xtn, ytn] = dsmcstep(xtn0, ytn0, h, umax, cks, muks, cres, xlim, ylim, au, spherical);
     elseif strcmp(algorithm, 'Lawnmower')
         [xtn, ytn] = lawnmowerstep(xtn0, ytn0, h, umax, xlim, ylim, 3, spherical);
     elseif strcmp(algorithm, 'Random Walk')
@@ -143,8 +162,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Calculate convergence metric
     sks = cks - muks;
-    phi = sum(sum(Las.*sks.^2));
-    phi2 = [phi2; phi];
+    phi2n = sum(sum(Las.*sks.^2));
+    phi2 = [phi2; phi2n];
     
     % Plot particles and trajectories
     if isfield(ax, 'main') && ~isempty(ax.main)
@@ -157,12 +176,6 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     if isfield(ax, 'convergence') && ~isempty(ax.convergence)
         plotconvergence(ax.convergence, phi2);
     end
-    
-    % Plot s
-    plots(axsurf, Las.*sks, cres, xlim, ylim);
-    
-    % Plot grad
-    plotgrad(axgrad, Las.*sks, cres, xlim, ylim);
     
     % Plot log density of particles
     if isfield(ax, 'mu') && ~isempty(ax.mu)
@@ -177,53 +190,49 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     drawnow;
     
     % Save output figures
-    plotfun = {...
-        @(ax) plotmain(ax, mux, muy, muxtar, muytar, foundtargets, xt, yt, ...
-        stepnum, ntargets, findradius, xland, yland, xlim, ylim, co), ...
-        @(ax) plotconvergence(ax, phi2), ...
-        @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
-        @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
-        @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, outputsettings.mesohyperbolicity.T, cres)};
-    
-    osfigs = {outputsettings.main, outputsettings.convergence, ...
-        outputsettings.mu, outputsettings.coverage, ...
-        outputsettings.mesohyperbolicity};
-    
-    f = figure;
-    axnew = gca;
-    set (f, 'Renderer', 'zbuffer');
-    set(f, 'Visible', 'off');
-    
-    for i = 1:numel(osfigs)
-        os = osfigs{i};
-        if os.enable && t >= fcount(i)*os.rate
-            set(f, 'Position', [0, 0, os.width, os.height]);
-            func = plotfun{i};
-            func(axnew);
-            maketitle(axnew, t, datetitle, starttime);
-            set(f, 'Visible', 'off');
-            drawnow;
-            if os.animation
-                frame = getframe(f);
-                im = frame2im(frame);
-                [imind, map] = rgb2ind(im,256);
-                if fcount(i) == 0
-                    imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'LoopCount', inf);
+    if ~isempty(outputsettings)
+        plotfun = {...
+            @(ax) plotmain(ax, mux, muy, muxtar, muytar, foundtargets, xt, yt, ...
+            stepnum, ntargets, findradius, xland, yland, xlim, ylim, co), ...
+            @(ax) plotconvergence(ax, phi2), ...
+            @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
+            @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
+            @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, outputsettings.mesohyperbolicity.T, cres)};
+        
+        osfigs = {outputsettings.main, outputsettings.convergence, ...
+            outputsettings.mu, outputsettings.coverage, ...
+            outputsettings.mesohyperbolicity};
+        
+        for i = 1:numel(osfigs)
+            os = osfigs{i};
+            if os.enable && t >= fcount(i)*os.rate
+                set(outfig, 'Position', [0, 0, os.width, os.height]);
+                func = plotfun{i};
+                func(axoutput);
+                maketitle(axoutput, t, datetitle, starttime);
+                set(outfig, 'Visible', 'off');
+                drawnow;
+                if os.animation
+                    frame = getframe(outfig);
+                    im = frame2im(frame);
+                    [imind, map] = rgb2ind(im,256);
+                    if fcount(i) == 0
+                        imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'LoopCount', inf);
+                    else
+                        imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'WriteMode', 'append');
+                    end
                 else
-                    imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'WriteMode', 'append');
+                    if ~exist(os.filename, 'file')
+                        mkdir(os.filename);
+                    end
+                    frame = getframe(outfig);
+                    im = frame2im(frame);
+                    imwrite(im, [os.filename, '/', sprintf('%.3d.png', fcount(i) + 1)], 'png');
                 end
-            else
-                if ~exist(os.filename, 'file')
-                    mkdir(os.filename);
-                end
-                frame = getframe(f);
-                im = frame2im(frame);
-                imwrite(im, [os.filename, '/', sprintf('%.3d.png', fcount(i) + 1)], 'png');
+                fcount(i) = fcount(i) + 1;
             end
-            fcount(i) = fcount(i) + 1;
         end
     end
-    delete(f);
     
     % Pause
     while paused()
