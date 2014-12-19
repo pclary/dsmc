@@ -44,7 +44,7 @@ if nargin < 2
     outputsettings = [];
 end
 if nargin < 3
-    ax = struct();
+    ax = [];
 end
 if nargin < 4
     aborthandle = [];
@@ -99,8 +99,10 @@ cks = pts2dct(xt, yt, cres, xlim, ylim);
 fcount = [0, 0, 0, 0, 0];
 stepnum = size(xt, 1);
 t = 0;
-co = get(gca,'ColorOrder');
 clear lawnmowerstep
+if ~isempty(ax) || ~isempty(outputsettings)
+    co = get(gca,'ColorOrder');
+end
 
 % Used for abort button signalling with the GUI
 if ~isempty(aborthandle)
@@ -129,7 +131,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     [xt, yt] = rk4step(t, h, xt, yt, vx, vy);
     
     muks0 = pts2dct(mux, muy, mures, xlim, ylim);
-    muks = logmuks(muks0, lambda, cres, xlim, ylim);
+    muks = logmuks(muks0, lambda, cres);
     
     % Use search algorithm to determine new agent positions
     xtn0 = xt(stepnum, :);
@@ -240,7 +242,9 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     end
 end
 
-set(gca, 'ColorOrder', co);
+if ~isempty(ax) || ~isempty(outputsettings)
+    set(gca, 'ColorOrder', co);
+end
 
 targets = ntargets:-1:ntargets-numel(findtimes)+1;
 

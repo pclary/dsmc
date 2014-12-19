@@ -18,19 +18,21 @@ hk = ones(cres)*diff(xlim)*diff(ylim);
 hk(1, :) = hk(1, :) * sqrt(2);
 hk(:, 1) = hk(:, 1) * sqrt(2);
 
-valx = bsxfun(@times, k1', xa - xlim(1) + diff(xlim)/cres/2);
-valy = bsxfun(@times, k2', ya - ylim(1) + diff(ylim)/cres/2);
+% Compute sines and cosines
+xoff = diff(xlim)/cres/2;
+yoff = diff(ylim)/cres/2;
+valx = bsxfun(@times, k1', xa - xlim(1) + xoff);
+valy = bsxfun(@times, k2', ya - ylim(1) + yoff);
 cx = cos(valx);
 sx = sin(valx);
 cy = cos(valy);
 sy = sin(valy);
 
+% Combine and sum to get gradient
 out = zeros(2, N);
-test = zeros(1, N);
 for i = 1:N
-    test(i) = sum(sum(Lasks .* bsxfun(@times, cx(:, i)', cy(:, i)) ./ hk));
-    qx = Lasks .* bsxfun(@times, k1, bsxfun(@times, sx(:, i)', cy(:, i))) ./ hk;
-    qy = Lasks .* bsxfun(@times, k2', bsxfun(@times, cx(:, i)', sy(:, i))) ./ hk;
-    out(1, i) = -sum(qx(:));
-    out(2, i) = -sum(qy(:));
+    qx = Lasks .* bsxfun(@times, k1, bsxfun(@times, -sx(:, i)', cy(:, i))) ./ hk;
+    qy = Lasks .* bsxfun(@times, k2', bsxfun(@times, cx(:, i)', -sy(:, i))) ./ hk;
+    out(1, i) = sum(qx(:));
+    out(2, i) = sum(qy(:));
 end

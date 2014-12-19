@@ -4,7 +4,7 @@ function [xp, yp] = sampledist(dist, n, x, y, sampfun)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/17/2014
+% Updated 12/19/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Sample using the supplied sample function or the default halton sequence;
@@ -19,9 +19,11 @@ end
 
 % Set output domain
 if nargin < 4 || (isempty(x) && isempty(y))
-    x = linspace(0, 1, size(dist, 2));
-    y = linspace(0, 1, size(dist, 1));
-elseif numel(x) == 2 && numel(y) == 2
+    x = [0, 1];
+    y = [0, 1];
+end
+if numel(x) == 2 && numel(y) == 2 && any(size(dist) ~= [2, 2])
+    % Treat x and y as bounds, not grid vectors
     x = linspace(x(1), x(2), size(dist, 2));
     y = linspace(y(1), y(2), size(dist, 1));
 end
