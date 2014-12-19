@@ -361,7 +361,6 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     settings.yti = yti;
     settings.xland = xland;
     settings.yland = yland;
-    handles.settings = settings;
     
     ax.main = handles.axes_smain;
     ax.convergence = handles.axes_saux;
@@ -430,7 +429,6 @@ while getappdata(handles.btn_singleabort, 'Abort') == 0
     settings.yti = yti;
     settings.xland = xland;
     settings.yland = yland;
-    handles.settings = settings;
     
     ax.main = handles.axes_mmain;
     
