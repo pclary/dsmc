@@ -9,7 +9,7 @@ function [findtimes, targets, phi2, mur, c, xt, yt] = runsearch(settings, ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/18/2014
+% Updated 12/19/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Unpack settings
@@ -267,7 +267,9 @@ plot(ax, xland, yland, 'k.');
 
 plot(ax, [xt(1, :); xt(1:stepnum, :)], [yt(1, :); yt(1:stepnum, :)]);
 plot(ax, [xt(stepnum, :); xt(stepnum, :)], ...
-    [yt(stepnum, :); yt(stepnum, :)], '.', 'MarkerSize', 15);
+    [yt(stepnum, :); yt(stepnum, :)], '.k', 'MarkerSize', 20);
+plot(ax, [xt(stepnum, :); xt(stepnum, :)], ...
+    [yt(stepnum, :); yt(stepnum, :)], '.', 'MarkerSize', 14);
 
 if ntargets > 0
     theta = linspace(0, 2*pi)';
@@ -291,22 +293,24 @@ ylabel(ax, '\phi^2');
 
 function plotmu(ax, muks, xlim, ylim, cres)
 
-mur = idct2(muks);
-x = linspace(xlim(1), xlim(2), cres);
-y = linspace(ylim(1), ylim(2), cres);
+mu = idct2(muks);
+mu = [mu, zeros(cres, 1); zeros(1, cres), 0];
+x = linspace(xlim(1), xlim(2), cres+1);
+y = linspace(ylim(1), ylim(2), cres+1);
 [x, y] = meshgrid(x, y);
-surf(ax, x, y, mur, 'EdgeColor', 'none');
+surf(ax, x, y, mu, 'EdgeColor', 'none');
 axis(ax, 'equal');
 axis(ax, [xlim, ylim]);
 title(ax, 'Log(Particle distribution)');
-caxis(ax, sort([0, max(max(mur))]));
+caxis(ax, sort([0, max(max(mu))]));
 
 
 function plotcoverage(ax, cks, xlim, ylim, cres)
 
 c = idct2(cks);
-x = linspace(xlim(1), xlim(2), cres);
-y = linspace(ylim(1), ylim(2), cres);
+c = [c, zeros(cres, 1); zeros(1, cres), 0];
+x = linspace(xlim(1), xlim(2), cres+1);
+y = linspace(ylim(1), ylim(2), cres+1);
 [x, y] = meshgrid(x, y);
 surf(ax, x, y, c, 'EdgeColor', 'none');
 axis(ax, 'equal');
@@ -334,8 +338,9 @@ colorbar('peer', ax, 'EastOutside');
 function plots(ax, Lasks, cres, xlim, ylim)
 
 s = idct2(Lasks);
-x = linspace(xlim(1), xlim(2), cres);
-y = linspace(ylim(1), ylim(2), cres);
+s = [s, zeros(cres, 1); zeros(1, cres), 0];
+x = linspace(xlim(1), xlim(2), cres+1);
+y = linspace(ylim(1), ylim(2), cres+1);
 [x, y] = meshgrid(x, y);
 surf(ax, x, y, s, 'EdgeColor', 'none');
 title(ax, 'DSMC surface');
