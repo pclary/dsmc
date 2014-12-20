@@ -80,7 +80,7 @@ end
 
 % Sample distribution to get particles and targets
 [mux, muy] = sampledist(mu, nsamplepts, xlim, ylim);
-[muxtar, muytar] = sampledist(mu, ntargets, xlim, ylim);
+[tarx, tary] = sampledist(mu, ntargets, xlim, ylim);
 foundtargets = [];
 findtimes = 0;
 findchance = 1 - exp(-h/findtimeconst);
@@ -124,10 +124,10 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     % Step particles, targets, and trajectories forward in time according 
     % to the velocity field
     [mux, muy] = rk4step(t, h, mux, muy, vx, vy);
-    [muxtarn, muytarn] = rk4step(t, h, muxtar, muytar, vx, vy);
-    tdisps = sqrt((muxtarn-muxtar).^2 + (muytarn-muytar).^2);
-    muxtar = muxtarn + tu*rand(size(muxtar)).*tdisps;
-    muytar = muytarn + tu*rand(size(muxtar)).*tdisps;
+    [tarxn, taryn] = rk4step(t, h, tarx, tary, vx, vy);
+    tdisps = sqrt((tarxn-tarx).^2 + (taryn-tary).^2);
+    tarx = tarxn + tu*rand(size(tarx)).*tdisps;
+    tary = taryn + tu*rand(size(tarx)).*tdisps;
     [xt, yt] = rk4step(t, h, xt, yt, vx, vy);
     
     muks0 = pts2dct(mux, muy, mures, xlim, ylim);
@@ -153,12 +153,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Keep track of discovered targets
     notfound = ~ismember(1:ntargets, foundtargets);
-    dists = min(sqrt(bsxfun(@minus, xt(stepnum, :), muxtar).^2 + ...
-        bsxfun(@minus, yt(stepnum, :), muytar).^2), [], 2);
-    if numel(dists) == 0
-        dists = zeros(0, 1);
-    end
-    found = find(dists < findradius & notfound' & rand(ntargets, 1) < findchance);
+    found = find(infindrange(xt, yt, tarx, tary, findradius) & notfound' & rand(ntargets, 1) < findchance);
     foundtargets = [foundtargets; found];
     findtimes = [findtimes; t*ones(numel(found), 1)];
     
@@ -169,7 +164,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Plot particles and trajectories
     if isfield(ax, 'main') && ~isempty(ax.main)
-        plotmain(ax.main, mux, muy, muxtar, muytar, foundtargets, xt, yt, ...
+        plotmain(ax.main, mux, muy, tarx, tary, foundtargets, xt, yt, ...
             stepnum, ntargets, findradius, xland, yland, xlim, ylim, co);
         maketitle(ax.main, t, datetitle, starttime);
     end
@@ -194,7 +189,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     % Save output figures
     if ~isempty(outputsettings)
         plotfun = {...
-            @(ax) plotmain(ax, mux, muy, muxtar, muytar, foundtargets, xt, yt, ...
+            @(ax) plotmain(ax, mux, muy, tarx, tary, foundtargets, xt, yt, ...
             stepnum, ntargets, findradius, xland, yland, xlim, ylim, co), ...
             @(ax) plotconvergence(ax, phi2), ...
             @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
