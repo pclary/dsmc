@@ -20,6 +20,7 @@ vy = settings.vy;
 h = settings.h;
 mu = settings.mu;
 nsamplepts = settings.nsamplepts;
+substeps = settings.substeps;
 mures = settings.mures;
 cres = settings.cres;
 umax = settings.umax;
@@ -97,7 +98,6 @@ cks = pts2dct(xt, yt, cres, xlim, ylim);
 
 % Misc setup
 fcount = [0, 0, 0, 0, 0];
-stepnum = size(xt, 1);
 t = 0;
 clear lawnmowerstep
 if ~isempty(ax) || ~isempty(outputsettings)
@@ -134,8 +134,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     muks = logmuks(muks0, lambda, cres);
     
     % Use search algorithm to determine new agent positions
-    xtn0 = xt(stepnum, :);
-    ytn0 = yt(stepnum, :);
+    xtn0 = xt(end, :);
+    ytn0 = yt(end, :);
     if strcmp(algorithm, 'DSMC')
         [xtn, ytn] = dsmcstep(xtn0, ytn0, h, umax, cks, muks, cres, xlim, ylim, au, spherical);
     elseif strcmp(algorithm, 'Lawnmower')
@@ -143,9 +143,10 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     elseif strcmp(algorithm, 'Random Walk')
         [xtn, ytn] = randomwalkstep(xtn0, ytn0, h, umax, xlim, ylim, spherical);
     end
-    xt(stepnum+1, :) = xtn;
-    yt(stepnum+1, :) = ytn;
-    stepnum = stepnum + 1;
+    xtns = bsxfun(@plus, bsxfun(@times, xtn - xtn0, linspace(0, 1, substeps + 2)'), xtn0);
+    ytns = bsxfun(@plus, bsxfun(@times, ytn - ytn0, linspace(0, 1, substeps + 2)'), ytn0);
+    xt = [xt; xtns(2:end, :)];
+    yt = [yt; ytns(2:end, :)];
     
     cks = pts2dct(xt, yt, cres, xlim, ylim);
     
@@ -159,13 +160,12 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Calculate convergence metric
     sks = cks - muks;
-    phi2n = sum(sum(Las.*sks.^2));
-    phi2 = [phi2; phi2n];
+    phi2(end+1) = sum(sum(Las.*sks.^2));
     
     % Plot particles and trajectories
     if isfield(ax, 'main') && ~isempty(ax.main)
         plotmain(ax.main, mux, muy, tarx, tary, foundtargets, xt, yt, ...
-            stepnum, ntargets, findradius, xland, yland, xlim, ylim, co);
+            ntargets, findradius, xland, yland, xlim, ylim, co);
         maketitle(ax.main, t, datetitle, starttime);
     end
     
@@ -190,7 +190,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     if ~isempty(outputsettings)
         plotfun = {...
             @(ax) plotmain(ax, mux, muy, tarx, tary, foundtargets, xt, yt, ...
-            stepnum, ntargets, findradius, xland, yland, xlim, ylim, co), ...
+            ntargets, findradius, xland, yland, xlim, ylim, co), ...
             @(ax) plotconvergence(ax, phi2), ...
             @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
             @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
@@ -249,7 +249,7 @@ c = idct2(cks);
 
 
 function plotmain(ax, mux, muy, muxtar, muytar, foundtargets, xt, yt, ...
-    stepnum, ntargets, findradius, xland, yland, xlim, ylim, co)
+    ntargets, findradius, xland, yland, xlim, ylim, co)
 
 plot(ax, mux, muy, '.b', 'MarkerSize', 2);
 set(ax, 'ColorOrder', co(2:end, :), 'NextPlot', 'replacechildren');
@@ -260,16 +260,16 @@ plot(ax, muxtar(foundtargets), muytar(foundtargets), 'mo', ...
 
 plot(ax, xland, yland, 'k.');
 
-plot(ax, [xt(1, :); xt(1:stepnum, :)], [yt(1, :); yt(1:stepnum, :)]);
-plot(ax, [xt(stepnum, :); xt(stepnum, :)], ...
-    [yt(stepnum, :); yt(stepnum, :)], '.k', 'MarkerSize', 20);
-plot(ax, [xt(stepnum, :); xt(stepnum, :)], ...
-    [yt(stepnum, :); yt(stepnum, :)], '.', 'MarkerSize', 14);
+plot(ax, [xt(1, :); xt], [yt(1, :); yt]);
+plot(ax, [xt(end, :); xt(end, :)], ...
+    [yt(end, :); yt(end, :)], '.k', 'MarkerSize', 20);
+plot(ax, [xt(end, :); xt(end, :)], ...
+    [yt(end, :); yt(end, :)], '.', 'MarkerSize', 14);
 
 if ntargets > 0
     theta = linspace(0, 2*pi)';
-    circx = bsxfun(@plus, xt(stepnum, :), findradius*cos(theta));
-    circy = bsxfun(@plus, yt(stepnum, :), findradius*sin(theta));
+    circx = bsxfun(@plus, xt(end, :), findradius*cos(theta));
+    circy = bsxfun(@plus, yt(end, :), findradius*sin(theta));
     plot(ax, circx, circy);
 end
 

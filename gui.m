@@ -30,7 +30,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 17-Dec-2014 17:52:15
+% Last Modified by GUIDE v2.5 19-Dec-2014 17:41:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,7 +52,7 @@ end
 % End initialization code - DO NOT EDIT
 
 % --- Executes just before gui is made visible.
-function gui_OpeningFcn(hObject, eventdata, handles, varargin)
+function gui_OpeningFcn(hObject, ~, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -92,6 +92,7 @@ settings.mures = 32;
 settings.cres = 128;
 settings.h = 1/100;
 settings.nsamplepts = 10000;
+settings.substeps = 0;
 settings.ntargets = 1000;
 settings.findradius = 0.01;
 settings.findtimeconst = 0.05;
@@ -155,7 +156,7 @@ rendermu(handles);
 guidata(hObject, handles);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = gui_OutputFcn(hObject, eventdata, handles)
+function varargout = gui_OutputFcn(~, ~, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -188,6 +189,7 @@ set(handles.edit_mures, 'String', num2str(settings.mures));
 set(handles.edit_cres, 'String', num2str(settings.cres));
 set(handles.edit_h, 'String', num2str(settings.h));
 set(handles.edit_nsamplepts, 'String', num2str(settings.nsamplepts));
+set(handles.edit_substeps, 'String', num2str(settings.substeps));
 set(handles.edit_ntargets, 'String', num2str(settings.ntargets));
 set(handles.edit_findradius, 'String', num2str(settings.findradius));
 set(handles.edit_findtimeconst, 'String', num2str(settings.findtimeconst));
@@ -312,7 +314,7 @@ end
 % UI button callbacks
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function btn_singlestart_Callback(hObject, eventdata, handles)
+function btn_singlestart_Callback(hObject, ~, handles)
 % Start the simulation in convergence mode
 
 setappdata(handles.btn_singleabort, 'Abort', 0);
@@ -384,7 +386,7 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     end
 end
 
-function btn_multistart_Callback(hObject, eventdata, handles)
+function btn_multistart_Callback(hObject, ~, handles)
 % Start the simulation in find targets mode
 
 setappdata(handles.btn_singleabort, 'Abort', 0);
@@ -452,13 +454,13 @@ while getappdata(handles.btn_singleabort, 'Abort') == 0
     guidata(hObject, handles);
 end
 
-function btn_save_Callback(hObject, eventdata, handles)
+function btn_save_Callback(~, ~, handles)
 
 settings = handles.settings;
 data = handles.data;
 uisave({'data', 'settings'});
 
-function btn_load_Callback(hObject, eventdata, handles)
+function btn_load_Callback(hObject, ~, handles)
 
 uiopen('load');
 if exist('data', 'var') && exist('settings', 'var')
@@ -512,7 +514,7 @@ if exist('data', 'var') && exist('settings', 'var')
     guidata(hObject, handles);
 end
 
-function btn_mclear_Callback(hObject, eventdata, handles)
+function btn_mclear_Callback(hObject, ~, handles)
 
 button = questdlg('Clear data from previous runs; are you sure?','Confirm Clear','Cancel');
 
@@ -526,7 +528,7 @@ if strcmp(button, 'Yes')
     guidata(hObject, handles);
 end
 
-function btn_loadveldata_Callback(hObject, eventdata, handles)
+function btn_loadveldata_Callback(hObject, ~, handles)
 
 [filename, path] = uigetfile('*.mat');
 if filename
@@ -546,7 +548,7 @@ if filename
     end
 end
 
-function uipanel3_SelectionChangeFcn(hObject, eventdata, handles)
+function uipanel3_SelectionChangeFcn(~, eventdata, handles)
 % Handle tab changes and change the colormap -- only one colormap can be
 % associated with a single figure at once, despite having multiple axes
 
@@ -577,7 +579,7 @@ switch eventdata.NewValue
         colormap(jet(256));
 end
 
-function uipanel_velradio_SelectionChangeFcn(hObject, eventdata, handles)
+function uipanel_velradio_SelectionChangeFcn(~, eventdata, handles)
 
 switch eventdata.NewValue
     case handles.radio_expression
@@ -588,24 +590,24 @@ switch eventdata.NewValue
         set(handles.edit_vy,'Enable','Off');
 end
 
-function btn_singleabort_Callback(hObject, eventdata, handles)
+function btn_singleabort_Callback(~, ~, handles)
 
 setappdata(handles.btn_singleabort, 'Abort', 1);
 
-function btn_multiabort_Callback(hObject, eventdata, handles)
+function btn_multiabort_Callback(~, ~, handles)
 
 setappdata(handles.btn_singleabort, 'Abort', 1); % not a bug
 
-function btn_sresume_Callback(hObject, eventdata, handles)
+function btn_sresume_Callback(~, ~, ~)
 % Blank callback function
 
-function cbox_spause_Callback(hObject, eventdata, handles)
+function cbox_spause_Callback(~, ~, ~)
 % Blank callback function
 
-function cbox_mpause_Callback(hObject, eventdata, handles)
+function cbox_mpause_Callback(~, ~, ~)
 % Blank callback function
 
-function cbox_srunonce_Callback(hObject, eventdata, handles)
+function cbox_srunonce_Callback(~, ~, ~)
 % Blank callback function
 
 
@@ -614,7 +616,7 @@ function cbox_srunonce_Callback(hObject, eventdata, handles)
 % Parameter edit callbacks
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function edit_N_Callback(hObject, eventdata, handles)
+function edit_N_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -622,7 +624,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.N = val;
 guidata(hObject, handles);
 
-function edit_umax_Callback(hObject, eventdata, handles)
+function edit_umax_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -630,7 +632,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.umax = val;
 guidata(hObject, handles);
 
-function edit_tstop_Callback(hObject, eventdata, handles)
+function edit_tstop_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -638,7 +640,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.tstop = val;
 guidata(hObject, handles);
 
-function edit_ntargets_Callback(hObject, eventdata, handles)
+function edit_ntargets_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -646,7 +648,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.ntargets = val;
 guidata(hObject, handles);
 
-function edit_mures_Callback(hObject, eventdata, handles)
+function edit_mures_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -654,7 +656,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.mures = val;
 guidata(hObject, handles);
 
-function edit_findradius_Callback(hObject, eventdata, handles)
+function edit_findradius_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -662,7 +664,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.findradius = val;
 guidata(hObject, handles);
 
-function edit_findtimeconst_Callback(hObject, eventdata, handles)
+function edit_findtimeconst_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -670,7 +672,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.findtimeconst = val;
 guidata(hObject, handles);
 
-function edit_cres_Callback(hObject, eventdata, handles)
+function edit_cres_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -680,7 +682,7 @@ handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
-function edit_h_Callback(hObject, eventdata, handles)
+function edit_h_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -688,7 +690,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.h = val;
 guidata(hObject, handles);
 
-function edit_nsamplepts_Callback(hObject, eventdata, handles)
+function edit_nsamplepts_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -696,7 +698,15 @@ set(hObject, 'String', num2str(val));
 handles.settings.nsamplepts = val;
 guidata(hObject, handles);
 
-function edit_lambda_Callback(hObject, eventdata, handles)
+function edit_substeps_Callback(hObject, ~, handles)
+
+str = get(hObject,'String');
+val = floor(eval(str));
+set(hObject, 'String', num2str(val));
+handles.settings.substeps = val;
+guidata(hObject, handles);
+
+function edit_lambda_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -704,14 +714,14 @@ set(hObject, 'String', num2str(val));
 handles.settings.lambda = val;
 guidata(hObject, handles);
 
-function popup_algorithm_Callback(hObject, eventdata, handles)
+function popup_algorithm_Callback(hObject, ~, handles)
 
 contents = cellstr(get(hObject,'String'));
 str = contents{get(hObject,'Value')};
 handles.settings.algorithm = str;
 guidata(hObject, handles);
 
-function edit_vx_Callback(hObject, eventdata, handles)
+function edit_vx_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -723,7 +733,7 @@ if strcmp(handles.settings.mutype, 'Mesohyperbolicity')
 end
 guidata(hObject, handles);
 
-function edit_vy_Callback(hObject, eventdata, handles)
+function edit_vy_Callback(hObject, ~, handles) %#ok<*DEFNU>
 
 str = get(hObject,'String');
 val = eval(str);
@@ -735,7 +745,7 @@ if strcmp(handles.settings.mutype, 'Mesohyperbolicity')
 end
 guidata(hObject, handles);
 
-function edit_agentuncertainty_Callback(hObject, eventdata, handles)
+function edit_agentuncertainty_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -743,7 +753,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.agentuncertainty = val;
 guidata(hObject, handles);
 
-function edit_targetuncertainty_Callback(hObject, eventdata, handles)
+function edit_targetuncertainty_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -751,7 +761,7 @@ set(hObject, 'String', num2str(val));
 handles.settings.targetuncertainty = val;
 guidata(hObject, handles);
 
-function popup_mutype_Callback(hObject, eventdata, handles)
+function popup_mutype_Callback(hObject, ~, handles)
 
 contents = cellstr(get(hObject,'String'));
 str = contents{get(hObject,'Value')};
@@ -771,7 +781,7 @@ else
 end
 guidata(hObject, handles);
 
-function edit_gaussianstd_Callback(hObject, eventdata, handles)
+function edit_gaussianstd_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -781,7 +791,7 @@ handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
-function edit_gaussianx_Callback(hObject, eventdata, handles)
+function edit_gaussianx_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -791,7 +801,7 @@ handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
-function edit_gaussiany_Callback(hObject, eventdata, handles)
+function edit_gaussiany_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -801,7 +811,7 @@ handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
-function edit_mhlower_Callback(hObject, eventdata, handles)
+function edit_mhlower_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -811,7 +821,7 @@ handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
-function edit_mhupper_Callback(hObject, eventdata, handles)
+function edit_mhupper_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -821,7 +831,7 @@ handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
-function edit_mhT_Callback(hObject, eventdata, handles)
+function edit_mhT_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -831,7 +841,7 @@ handles.settings.mu = generatemu(handles);
 rendermu(handles);
 guidata(hObject, handles);
 
-function edit_xupper_Callback(hObject, eventdata, handles)
+function edit_xupper_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -843,7 +853,7 @@ val = eval(str);
     rendermu(handles);
 %end
 
-function edit_xlower_Callback(hObject, eventdata, handles)
+function edit_xlower_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -855,7 +865,7 @@ val = eval(str);
     rendermu(handles);
 %end
 
-function edit_yupper_Callback(hObject, eventdata, handles)
+function edit_yupper_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -867,7 +877,7 @@ val = eval(str);
     rendermu(handles);
 %end
 
-function edit_ylower_Callback(hObject, eventdata, handles)
+function edit_ylower_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -879,38 +889,38 @@ val = eval(str);
     rendermu(handles);
 %end
 
-function cbox_spherical_Callback(hObject, eventdata, handles)
+function cbox_spherical_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.settings.spherical = val;
 guidata(hObject, handles);
 
-function cbox_datetitle_Callback(hObject, eventdata, handles)
+function cbox_datetitle_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.settings.datetitle = val;
 guidata(hObject, handles);
 
-function edit_starttime_Callback(hObject, eventdata, handles)
+function edit_starttime_Callback(hObject, ~, handles)
 
 val = datenum(get(hObject, 'String'));
 set(hObject, 'String', datestr(val, 0));
 handles.settings.starttime = val;
 guidata(hObject, handles);
 
-function cbox_overwrite_Callback(hObject, eventdata, handles)
+function cbox_overwrite_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.overwrite = val;
 guidata(hObject, handles);
 
-function cbox_main_enable_Callback(hObject, eventdata, handles)
+function cbox_main_enable_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.main.enable = val;
 guidata(hObject, handles);
 
-function edit_main_rate_Callback(hObject, eventdata, handles)
+function edit_main_rate_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -918,7 +928,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.main.rate = val;
 guidata(hObject, handles);
 
-function edit_main_width_Callback(hObject, eventdata, handles)
+function edit_main_width_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -926,7 +936,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.main.width = val;
 guidata(hObject, handles);
 
-function edit_main_height_Callback(hObject, eventdata, handles)
+function edit_main_height_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -934,25 +944,25 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.main.height = val;
 guidata(hObject, handles);
 
-function edit_main_filename_Callback(hObject, eventdata, handles)
+function edit_main_filename_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 handles.outputsettings.main.filename = str;
 guidata(hObject, handles);
 
-function cbox_main_animation_Callback(hObject, eventdata, handles)
+function cbox_main_animation_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.main.animation = val;
 guidata(hObject, handles);
 
-function cbox_cov_enable_Callback(hObject, eventdata, handles)
+function cbox_cov_enable_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.coverage.enable = val;
 guidata(hObject, handles);
 
-function edit_cov_rate_Callback(hObject, eventdata, handles)
+function edit_cov_rate_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -960,7 +970,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.coverage.rate = val;
 guidata(hObject, handles);
 
-function edit_cov_width_Callback(hObject, eventdata, handles)
+function edit_cov_width_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -968,7 +978,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.coverage.width = val;
 guidata(hObject, handles);
 
-function edit_cov_height_Callback(hObject, eventdata, handles)
+function edit_cov_height_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -976,25 +986,25 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.coverage.height = val;
 guidata(hObject, handles);
 
-function edit_cov_filename_Callback(hObject, eventdata, handles)
+function edit_cov_filename_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 handles.outputsettings.coverage.filename = str;
 guidata(hObject, handles);
 
-function cbox_cov_animation_Callback(hObject, eventdata, handles)
+function cbox_cov_animation_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.coverage.animation = val;
 guidata(hObject, handles);
 
-function cbox_mu_enable_Callback(hObject, eventdata, handles)
+function cbox_mu_enable_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.mu.enable = val;
 guidata(hObject, handles);
 
-function edit_mu_rate_Callback(hObject, eventdata, handles)
+function edit_mu_rate_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1002,7 +1012,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.mu.rate = val;
 guidata(hObject, handles);
 
-function edit_mu_width_Callback(hObject, eventdata, handles)
+function edit_mu_width_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1010,7 +1020,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.mu.width = val;
 guidata(hObject, handles);
 
-function edit_mu_height_Callback(hObject, eventdata, handles)
+function edit_mu_height_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1018,25 +1028,25 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.mu.height = val;
 guidata(hObject, handles);
 
-function edit_mu_filename_Callback(hObject, eventdata, handles)
+function edit_mu_filename_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 handles.outputsettings.mu.filename = str;
 guidata(hObject, handles);
 
-function cbox_mu_animation_Callback(hObject, eventdata, handles)
+function cbox_mu_animation_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.mu.animation = val;
 guidata(hObject, handles);
 
-function cbox_con_enable_Callback(hObject, eventdata, handles)
+function cbox_con_enable_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.convergence.enable = val;
 guidata(hObject, handles);
 
-function edit_con_rate_Callback(hObject, eventdata, handles)
+function edit_con_rate_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1044,7 +1054,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.convergence.rate = val;
 guidata(hObject, handles);
 
-function edit_con_width_Callback(hObject, eventdata, handles)
+function edit_con_width_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1052,7 +1062,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.convergence.width = val;
 guidata(hObject, handles);
 
-function edit_con_height_Callback(hObject, eventdata, handles)
+function edit_con_height_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1060,25 +1070,25 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.convergence.height = val;
 guidata(hObject, handles);
 
-function edit_con_filename_Callback(hObject, eventdata, handles)
+function edit_con_filename_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 handles.outputsettings.convergence.filename = str;
 guidata(hObject, handles);
 
-function cbox_con_animation_Callback(hObject, eventdata, handles)
+function cbox_con_animation_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.convergence.animation = val;
 guidata(hObject, handles);
 
-function cbox_mh_enable_Callback(hObject, eventdata, handles)
+function cbox_mh_enable_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.mesohyperbolicity.enable = val;
 guidata(hObject, handles);
 
-function edit_mh_rate_Callback(hObject, eventdata, handles)
+function edit_mh_rate_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1086,7 +1096,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.mesohyperbolicity.rate = val;
 guidata(hObject, handles);
 
-function edit_mh_width_Callback(hObject, eventdata, handles)
+function edit_mh_width_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1094,7 +1104,7 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.mesohyperbolicity.width = val;
 guidata(hObject, handles);
 
-function edit_mh_height_Callback(hObject, eventdata, handles)
+function edit_mh_height_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1102,19 +1112,19 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.mesohyperbolicity.height = val;
 guidata(hObject, handles);
 
-function edit_mh_filename_Callback(hObject, eventdata, handles)
+function edit_mh_filename_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 handles.outputsettings.mesohyperbolicity.filename = str;
 guidata(hObject, handles);
 
-function cbox_mh_animation_Callback(hObject, eventdata, handles)
+function cbox_mh_animation_Callback(hObject, ~, handles)
 
 val = get(hObject, 'Value');
 handles.outputsettings.mesohyperbolicity.animation = val;
 guidata(hObject, handles);
 
-function edit_mh_period_Callback(hObject, eventdata, handles)
+function edit_mh_period_Callback(hObject, ~, handles)
 
 str = get(hObject,'String');
 val = eval(str);
@@ -1127,247 +1137,251 @@ guidata(hObject, handles);
 % UI element creation functions, all boilerplate
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function edit_N_CreateFcn(hObject, eventdata, handles)
+function edit_N_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_umax_CreateFcn(hObject, eventdata, handles)
+function edit_umax_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_tstop_CreateFcn(hObject, eventdata, handles)
+function edit_tstop_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_ntargets_CreateFcn(hObject, eventdata, handles)
+function edit_ntargets_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mures_CreateFcn(hObject, eventdata, handles)
+function edit_mures_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_findradius_CreateFcn(hObject, eventdata, handles)
+function edit_findradius_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_findtimeconst_CreateFcn(hObject, eventdata, handles)
+function edit_findtimeconst_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_cres_CreateFcn(hObject, eventdata, handles)
+function edit_cres_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_h_CreateFcn(hObject, eventdata, handles)
+function edit_h_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_nsamplepts_CreateFcn(hObject, eventdata, handles)
+function edit_nsamplepts_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_lambda_CreateFcn(hObject, eventdata, handles)
+function edit_lambda_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function popup_algorithm_CreateFcn(hObject, eventdata, handles)
+function popup_algorithm_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_vx_CreateFcn(hObject, eventdata, handles)
+function edit_vx_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_vy_CreateFcn(hObject, eventdata, handles)
+function edit_vy_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_agentuncertainty_CreateFcn(hObject, eventdata, handles)
+function edit_agentuncertainty_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_targetuncertainty_CreateFcn(hObject, eventdata, handles)
+function edit_targetuncertainty_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function popup_mutype_CreateFcn(hObject, eventdata, handles)
+function popup_mutype_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_gaussianstd_CreateFcn(hObject, eventdata, handles)
+function edit_gaussianstd_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_gaussianx_CreateFcn(hObject, eventdata, handles)
+function edit_gaussianx_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_gaussiany_CreateFcn(hObject, eventdata, handles)
+function edit_gaussiany_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mhlower_CreateFcn(hObject, eventdata, handles)
+function edit_mhlower_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mhupper_CreateFcn(hObject, eventdata, handles)
+function edit_mhupper_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mhT_CreateFcn(hObject, eventdata, handles)
+function edit_mhT_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_xupper_CreateFcn(hObject, eventdata, handles)
+function edit_xupper_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_xlower_CreateFcn(hObject, eventdata, handles)
+function edit_xlower_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_yupper_CreateFcn(hObject, eventdata, handles)
+function edit_yupper_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_ylower_CreateFcn(hObject, eventdata, handles)
+function edit_ylower_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_starttime_CreateFcn(hObject, eventdata, handles)
+function edit_starttime_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_main_rate_CreateFcn(hObject, eventdata, handles)
+function edit_main_rate_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_main_width_CreateFcn(hObject, eventdata, handles)
+function edit_main_width_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_main_height_CreateFcn(hObject, eventdata, handles)
+function edit_main_height_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_main_filename_CreateFcn(hObject, eventdata, handles)
+function edit_main_filename_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mh_rate_CreateFcn(hObject, eventdata, handles)
+function edit_mh_rate_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mh_width_CreateFcn(hObject, eventdata, handles)
+function edit_mh_width_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mh_height_CreateFcn(hObject, eventdata, handles)
+function edit_mh_height_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mh_filename_CreateFcn(hObject, eventdata, handles)
+function edit_mh_filename_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_con_rate_CreateFcn(hObject, eventdata, handles)
+function edit_con_rate_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_con_width_CreateFcn(hObject, eventdata, handles)
+function edit_con_width_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_con_height_CreateFcn(hObject, eventdata, handles)
+function edit_con_height_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_con_filename_CreateFcn(hObject, eventdata, handles)
+function edit_con_filename_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mu_rate_CreateFcn(hObject, eventdata, handles)
+function edit_mu_rate_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mu_width_CreateFcn(hObject, eventdata, handles)
+function edit_mu_width_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mu_height_CreateFcn(hObject, eventdata, handles)
+function edit_mu_height_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mu_filename_CreateFcn(hObject, eventdata, handles)
+function edit_mu_filename_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_cov_filename_CreateFcn(hObject, eventdata, handles)
+function edit_cov_filename_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_cov_height_CreateFcn(hObject, eventdata, handles)
+function edit_cov_height_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_cov_width_CreateFcn(hObject, eventdata, handles)
+function edit_cov_width_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_cov_rate_CreateFcn(hObject, eventdata, handles)
+function edit_cov_rate_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-function edit_mh_period_CreateFcn(hObject, eventdata, handles)
+function edit_mh_period_CreateFcn(hObject, ~, ~)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_substeps_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
