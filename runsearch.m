@@ -153,8 +153,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     t = t + h;
     
     % Keep track of discovered targets
-    notfound = ~ismember(1:ntargets, foundtargets);
-    found = find(infindrange(xt, yt, tarx, tary, findradius) & notfound' & rand(ntargets, 1) < findchance);
+    found = findtargets(xt, yt, tarx, tary, findradius, findchance);
+    found = setdiff(found, foundtargets);
     foundtargets = [foundtargets; found];
     findtimes = [findtimes; t*ones(numel(found), 1)];
     
