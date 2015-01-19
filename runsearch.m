@@ -9,7 +9,7 @@ function [findtimes, targets, phi2, mur, c, xt, yt] = runsearch(settings, ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/19/2014
+% Updated 1/19/2015
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Unpack settings
@@ -97,6 +97,7 @@ Las = 1./(1 + Kx.^2 + Ky.^2).^(3/2);
 cks = pts2dct(xt, yt, cres, xlim, ylim);
 
 % Misc setup
+lastwarn('');
 fcount = [0, 0, 0, 0, 0];
 t = 0;
 clear lawnmowerstep
@@ -153,10 +154,12 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     t = t + h;
     
     % Keep track of discovered targets
-    found = findtargets(xt, yt, tarx, tary, findradius, findchance);
-    found = setdiff(found, foundtargets);
-    foundtargets = [foundtargets; found];
-    findtimes = [findtimes; t*ones(numel(found), 1)];
+    if ntargets > 0
+        found = findtargets(xt, yt, tarx, tary, findradius, findchance, spherical);
+        found = setdiff(found, foundtargets);
+        foundtargets = [foundtargets; found];
+        findtimes = [findtimes; t*ones(numel(found), 1)];
+    end
     
     % Calculate convergence metric
     sks = cks - muks;
@@ -165,7 +168,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     % Plot particles and trajectories
     if isfield(ax, 'main') && ~isempty(ax.main)
         plotmain(ax.main, mux, muy, tarx, tary, foundtargets, xt, yt, ...
-            ntargets, findradius, xland, yland, xlim, ylim, co);
+            ntargets, findradius, xland, yland, xlim, ylim, co, spherical);
         maketitle(ax.main, t, datetitle, starttime);
     end
     
@@ -190,7 +193,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     if ~isempty(outputsettings)
         plotfun = {...
             @(ax) plotmain(ax, mux, muy, tarx, tary, foundtargets, xt, yt, ...
-            ntargets, findradius, xland, yland, xlim, ylim, co), ...
+            ntargets, findradius, xland, yland, xlim, ylim, co, spherical), ...
             @(ax) plotconvergence(ax, phi2), ...
             @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
             @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
@@ -249,7 +252,7 @@ c = idct2(cks);
 
 
 function plotmain(ax, mux, muy, muxtar, muytar, foundtargets, xt, yt, ...
-    ntargets, findradius, xland, yland, xlim, ylim, co)
+    ntargets, findradius, xland, yland, xlim, ylim, co, spherical)
 
 plot(ax, mux, muy, '.b', 'MarkerSize', 2);
 set(ax, 'ColorOrder', co(2:end, :), 'NextPlot', 'replacechildren');
@@ -268,7 +271,12 @@ plot(ax, [xt(end, :); xt(end, :)], ...
 
 if ntargets > 0
     theta = linspace(0, 2*pi)';
-    circx = bsxfun(@plus, xt(end, :), findradius*cos(theta));
+    if spherical
+        circx = bsxfun(@plus, xt(end, :), ...
+            bsxfun(@rdivide, findradius*cos(theta), cosd(yt(end, :))));
+    else
+        circx = bsxfun(@plus, xt(end, :), findradius*cos(theta));
+    end
     circy = bsxfun(@plus, yt(end, :), findradius*sin(theta));
     plot(ax, circx, circy);
 end

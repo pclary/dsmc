@@ -25,7 +25,7 @@ function varargout = gui(varargin)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/19/2014
+% Updated 1/19/2015
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Edit the above text to modify the response to help gui
@@ -848,8 +848,8 @@ val = eval(str);
 %if val > handles.settings.xlim(1)
     set(hObject, 'String', num2str(val));
     handles.settings.xlim(2) = val;
-    guidata(hObject, handles);
     handles.settings.mu = generatemu(handles);
+    guidata(hObject, handles);
     rendermu(handles);
 %end
 
@@ -860,8 +860,8 @@ val = eval(str);
 %if val < handles.settings.xlim(2)
     set(hObject, 'String', num2str(val));
     handles.settings.xlim(1) = val;
-    guidata(hObject, handles);
     handles.settings.mu = generatemu(handles);
+    guidata(hObject, handles);
     rendermu(handles);
 %end
 
@@ -872,8 +872,8 @@ val = eval(str);
 %if val > handles.settings.ylim(1)
     set(hObject, 'String', num2str(val));
     handles.settings.ylim(2) = val;
-    guidata(hObject, handles);
     handles.settings.mu = generatemu(handles);
+    guidata(hObject, handles);
     rendermu(handles);
 %end
 
@@ -884,8 +884,8 @@ val = eval(str);
 %if val < handles.settings.ylim(2)
     set(hObject, 'String', num2str(val));
     handles.settings.ylim(1) = val;
-    guidata(hObject, handles);
     handles.settings.mu = generatemu(handles);
+    guidata(hObject, handles);
     rendermu(handles);
 %end
 

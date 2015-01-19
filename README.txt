@@ -3,7 +3,7 @@ Instructions
     
 
 Release Notes:
-    1/19/2015: Changed target detection method to be more realistic
+    1/19/2015: Changed target detection method to be more realistic and account for spherical coordinates
     12/18/2014: Significantly increased computation speed, fixed errors
     9/20/2014: Changed lawnmower to keep track of state separately, fixed distribution uniformity in spherical coordinates
     9/4/2014: Fixed target detection probability variable naming

@@ -1,4 +1,4 @@
-function found = findtargets(xt, yt, tarx, tary, r, stepprob)
+function found = findtargets(xt, yt, tarx, tary, r, stepprob, spherical)
 %FINDTARGETS Determines which targets were found during a step
 %   Models target detection using a fixed detection rate for each target 
 %   while it is within a distance from the searcher. 
@@ -13,8 +13,7 @@ function found = findtargets(xt, yt, tarx, tary, r, stepprob)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
-% 5/18/2014
-% Updated 12/18/2014
+% 1/19/2015
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Get endpoint of current and previous steps
@@ -30,6 +29,14 @@ d = sqrt(sum(dp.^2, 2));
 % Compute the number of substeps necessary to adequately approximate the
 % detection probability distribution
 substeps = ceil(2*max(d)/r);
+if substeps > 1e3
+    substeps = 1e3;
+    warnstring = ['Ratio of agent step size to detection radius' ...
+        'is too large. Target detection is not accurate.'];
+    if ~strcmp(lastwarn(), warnstring)
+        warning(warnstring);
+    end
+end
 
 % Proportion of the distance from p1 to p2 for each substep
 x = linspace(0, 1, substeps+1);
@@ -42,8 +49,14 @@ found = [];
 
 for i = 1:substeps
     ps = p2 + x(i) * dp;
-    dists = min(sqrt(bsxfun(@minus, ps(:, 1)', tarx).^2 + ...
-        bsxfun(@minus, ps(:, 2)', tary).^2), [], 2);
+    if spherical
+        distx = bsxfun(@times, bsxfun(@minus, ps(:, 1)', tarx), cosd(ps(:, 2)'));
+        disty = bsxfun(@minus, ps(:, 2)', tary);
+    else
+        distx = bsxfun(@minus, ps(:, 1)', tarx);
+        disty = bsxfun(@minus, ps(:, 2)', tary);
+    end
+    dists = min(sqrt(distx.^2 + disty.^2), [], 2);
     inrange = find(dists <= r);
     found = [found; inrange(rand(numel(inrange), 1) < substepprob)];
 end
