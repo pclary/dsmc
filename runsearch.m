@@ -38,6 +38,7 @@ starttime = settings.starttime;
 datetitle = settings.datetitle;
 xti = settings.xti;
 yti = settings.yti;
+regime = settings.regime;
 xland = settings.xland;
 yland = settings.yland;
 
@@ -88,6 +89,21 @@ findchance = 1 - exp(-h/findtimeconst);
 phi2 = [];
 
 % Set initial positions
+if size(regime, 1) > 0
+    maxagents = max(regime(:, 2));
+    startagents = regime(1, 2);
+    n = min(numel(xti), startagents);
+    xti = [xti(1:n), NaN*ones(1, maxagents - n)];
+    yti = [yti(1:n), NaN*ones(1, maxagents - n)];
+    geninds = isnan(xti(1:startagents)) | isnan(yti(1:startagents));
+    if any(geninds)
+        [xp, yp] = sampledist(mu, sum(geninds), xlim, ylim, @(n) rand(n, 1));
+        xti(geninds) = xp';
+        yti(geninds) = yp';
+    end
+else
+    maxagents = numel(xti);
+end
 xt = xti;
 yt = yti;
 
@@ -134,16 +150,43 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     muks0 = pts2dct(mux, muy, mures, xlim, ylim);
     muks = logmuks(muks0, lambda, cres);
     
+    % Get number of agents for this step
+    if isempty(regime)
+        nactiveagents = numel(xti);
+    else
+        iregime = find(regime(:, 1) <= t, 1, 'last');
+        if isempty(iregime)
+            nactiveagents = 0;
+        else
+            nactiveagents = regime(iregime, 2);
+        end
+    end
+    
+    % Get current agent positions
+    xtn0 = xt(end, 1:nactiveagents);
+    ytn0 = yt(end, 1:nactiveagents);
+    if any(isnan(xtn0))
+        [xp, yp] = sampledist(idct2(muks0), sum(isnan(xtn0)), ...
+            xlim, ylim, @(n) rand(n, 1));
+        xtn0(isnan(xtn0)) = xp';
+        ytn0(isnan(ytn0)) = yp';
+    end
+    
     % Use search algorithm to determine new agent positions
-    xtn0 = xt(end, :);
-    ytn0 = yt(end, :);
     if strcmp(algorithm, 'DSMC')
         [xtn, ytn] = dsmcstep(xtn0, ytn0, h, umax, cks, muks, cres, xlim, ylim, au, spherical);
     elseif strcmp(algorithm, 'Lawnmower')
         [xtn, ytn] = lawnmowerstep(xtn0, ytn0, h, umax, xlim, ylim, 3, spherical);
     elseif strcmp(algorithm, 'Random Walk')
         [xtn, ytn] = randomwalkstep(xtn0, ytn0, h, umax, xlim, ylim, spherical);
+    else
+        error(['Unrecognized search algorithm: ', algorithm]);
     end
+    npadding = maxagents - nactiveagents;
+    xtn = [xtn, NaN*ones(1, npadding)];
+    ytn = [ytn, NaN*ones(1, npadding)];
+    xtn0 = [xtn0, NaN*ones(1, npadding)];
+    ytn0 = [ytn0, NaN*ones(1, npadding)];
     xtns = bsxfun(@plus, bsxfun(@times, xtn - xtn0, linspace(0, 1, substeps + 2)'), xtn0);
     ytns = bsxfun(@plus, bsxfun(@times, ytn - ytn0, linspace(0, 1, substeps + 2)'), ytn0);
     xt = [xt; xtns(2:end, :)];

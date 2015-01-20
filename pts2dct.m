@@ -14,5 +14,10 @@ ybin = linspace(ylim(1) + yoff, ylim(2) - yoff, res);
 bins = hist3([x(:), y(:)], {xbin, ybin})';
 
 % Normalize
-bins = bins / (sum(sum(bins))/res^2);
+s = sum(sum(bins));
+if s == 0
+    bins = bins + 1;
+    s = sum(sum(bins));
+end
+bins = bins / (s/res^2);
 coeffs = dct2(bins);

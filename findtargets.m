@@ -16,6 +16,8 @@ function found = findtargets(xt, yt, tarx, tary, r, stepprob, spherical)
 % 1/19/2015
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+found = [];
+
 % Get endpoint of current and previous steps
 p1 = [xt(end, :)', yt(end, :)'];
 if numel(xt) > 1
@@ -23,6 +25,12 @@ if numel(xt) > 1
 else
     p2 = p1;
 end
+validpts = ~sum(isnan(p1) | isnan(p2), 2);
+if ~any(validpts)
+    return
+end
+p1 = p1(validpts, :);
+p2 = p2(validpts, :);
 dp = p1 - p2;
 d = sqrt(sum(dp.^2, 2));
 
@@ -44,8 +52,6 @@ x = x(2:end);
 
 % Detection probability for each substep
 substepprob = 1 - (1 - stepprob)^(1/substeps);
-
-found = [];
 
 for i = 1:substeps
     ps = p2 + x(i) * dp;

@@ -118,6 +118,7 @@ settings.mu = generatemu(handles);
     settings.ylim, @(n) rand(n, 1));
 settings.xti = xti'; 
 settings.yti = yti';
+settings.regime = [];
 settings.xland = [];
 settings.yland = [];
 

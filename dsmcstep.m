@@ -5,7 +5,7 @@ function [xtn, ytn] = dsmcstep(xtn0, ytn0, dt, umax, cks, muks, cres, ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/18/2014
+% Updated 1/19/2014
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 N = size(xtn0, 2);
@@ -22,21 +22,22 @@ end
 % Calculate values of lambda for each fourier term used
 [K1, K2] = meshgrid(0:cres-1, 0:cres-1);
 Las = 1./(1 + K1.^2 + K2.^2).^(3/2);
+Lasks = Las.*(cks - muks);
 
 % Take an rk4 step
-Bs = B(xtn0, ytn0, Las.*(cks - muks), cres, xlim, ylim);
+Bs = B(xtn0, ytn0, Lasks, cres, xlim, ylim);
 usn0 = usn(Bdir(Bs));
 xtn1 = xtn0 + dt/2 * usn0(1, :);
 ytn1 = ytn0 + dt/2 * usn0(2, :);
-Bs = B(xtn1, ytn1, Las.*(cks - muks), cres, xlim, ylim);
+Bs = B(xtn1, ytn1, Lasks, cres, xlim, ylim);
 usn1 = usn(Bdir(Bs));
 xtn2 = xtn0 + dt/2 * usn1(1, :);
 ytn2 = ytn0 + dt/2 * usn1(2, :);
-Bs = B(xtn2, ytn2, Las.*(cks - muks), cres, xlim, ylim);
+Bs = B(xtn2, ytn2, Lasks, cres, xlim, ylim);
 usn2 = usn(Bdir(Bs));
 xtn3 = xtn0 + dt/2 * usn2(1, :);
 ytn3 = ytn0 + dt/2 * usn2(2, :);
-Bs = B(xtn3, ytn3, Las.*(cks - muks), cres, xlim, ylim);
+Bs = B(xtn3, ytn3, Lasks, cres, xlim, ylim);
 usn3 = usn(Bdir(Bs));
 xtn = xtn0 + dt/6 * (usn0(1, :) + 2*usn1(1, :) + 2*usn2(1, :) + usn3(1, :));
 ytn = ytn0 + dt/6 * (usn0(2, :) + 2*usn1(2, :) + 2*usn2(2, :) + usn3(2, :));
