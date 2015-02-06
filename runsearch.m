@@ -12,6 +12,8 @@ function [findtimes, targets, phi2, mur, c, xt, yt] = runsearch(settings, ...
 % Updated 1/19/2015
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+tic
+
 % Unpack settings
 xlim = settings.xlim;
 ylim = settings.ylim;
@@ -41,6 +43,15 @@ yti = settings.yti;
 regime = settings.regime;
 xland = settings.xland;
 yland = settings.yland;
+verbose = settings.verbose;
+
+if verbose
+    writelog = @(s) fprintf('[%.2f] %s\n', toc(), s);
+else
+    writelog = @(s) 0;
+end
+
+writelog('Preparing to start...');
 
 if nargin < 2
     outputsettings = [];
@@ -104,8 +115,8 @@ if size(regime, 1) > 0
 else
     maxagents = numel(xti);
 end
-xt = xti;
-yt = yti;
+xt = [xti*NaN; xti];
+yt = [yti*NaN; yti];
 
 % Initialize K arrays and coverage coefficients
 [Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
@@ -194,6 +205,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     cks = pts2dct(xt, yt, cres, xlim, ylim);
     
+    writelog(sprintf('Simulation time: %.02f / %0.2f completed.', t, maxtime));
+    
     t = t + h;
     
     % Keep track of discovered targets
@@ -240,7 +253,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
             @(ax) plotconvergence(ax, phi2), ...
             @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
             @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
-            @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, outputsettings.mesohyperbolicity.T, cres)};
+            @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, ...
+            outputsettings.mesohyperbolicity.T, cres)};
         
         osfigs = {outputsettings.main, outputsettings.convergence, ...
             outputsettings.mu, outputsettings.coverage, ...
@@ -258,7 +272,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
                 if os.animation
                     frame = getframe(outfig);
                     im = frame2im(frame);
-                    [imind, map] = rgb2ind(im,256);
+                    [imind, map] = rgb2ind(im, 256);
                     if fcount(i) == 0
                         imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'LoopCount', inf);
                     else
@@ -268,11 +282,10 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
                     if ~exist(os.filename, 'file')
                         mkdir(os.filename);
                     end
-                    frame = getframe(outfig);
-                    im = frame2im(frame);
-                    imwrite(im, [os.filename, '/', sprintf('%.3d.png', fcount(i) + 1)], 'png');
+                    print(outfig, [os.filename, filesep, sprintf('%.3d.png', fcount(i) + 1)], '-dpng');
                 end
                 fcount(i) = fcount(i) + 1;
+                set(outfig, 'Visible', 'off');
             end
         end
     end
@@ -433,9 +446,9 @@ function filename = getunusedfilename(filename)
 
 originalfn = filename;
 
-if numel(filename) > 0 && exist(filename, 'file')
+if numel(filename) > 0 && exist([pwd, filesep, filename], 'file')
     i = 1;
-    while exist(filename, 'file')
+    while exist([pwd, filesep, filename], 'file')
         filename = originalfn;
         k = strfind(filename, '.');
         if numel(k) == 0

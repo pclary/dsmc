@@ -121,6 +121,7 @@ settings.yti = yti';
 settings.regime = [];
 settings.xland = [];
 settings.yland = [];
+settings.verbose = false;
 
 data.findtimes = {};
 data.targets = {};
@@ -345,7 +346,7 @@ while ~getappdata(handles.btn_singleabort, 'Abort')
     xti = xti'; yti = yti';
     
     if isfield(handles, 'veldata')
-        iland = find(isnan(handles.veldata.water_u) | isnan(handles.veldata.water_v));
+        iland = find(isnan(handles.veldata.water_u(:,:,1)) | isnan(handles.veldata.water_v(:,:,1)));
         [xtemp, ytemp] = meshgrid(handles.veldata.xvals, handles.veldata.yvals);
         xland = xtemp(iland);
         yland = ytemp(iland);
