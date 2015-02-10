@@ -30,7 +30,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 19-Dec-2014 17:41:59
+% Last Modified by GUIDE v2.5 09-Feb-2015 21:27:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -143,6 +143,7 @@ outputsettings.main.height = 400;
 outputsettings.convergence = outputsettings.main;
 outputsettings.mu = outputsettings.main;
 outputsettings.coverage = outputsettings.main;
+outputsettings.gradient = outputsettings.main;
 outputsettings.mesohyperbolicity = outputsettings.main;
 outputsettings.mesohyperbolicity.T = 1;
 
@@ -239,6 +240,12 @@ set(handles.edit_mh_width, 'String', num2str(os.mesohyperbolicity.width));
 set(handles.edit_mh_height, 'String', num2str(os.mesohyperbolicity.height));
 set(handles.edit_mh_filename, 'String', os.mesohyperbolicity.filename);
 set(handles.edit_mh_period, 'String', num2str(os.mesohyperbolicity.T));
+set(handles.cbox_grad_enable, 'Value', os.gradient.enable);
+set(handles.cbox_grad_animation, 'Value', os.gradient.animation);
+set(handles.edit_grad_rate, 'String', num2str(os.gradient.rate));
+set(handles.edit_grad_width, 'String', num2str(os.gradient.width));
+set(handles.edit_grad_height, 'String', num2str(os.gradient.height));
+set(handles.edit_grad_filename, 'String', os.gradient.filename);
 
 function [vx, vy] = getvelfunction(handles)
 % Get the appropriate velocity functions for expression mode and data
@@ -1134,6 +1141,47 @@ set(hObject, 'String', num2str(val));
 handles.outputsettings.mesohyperbolicity.T = val;
 guidata(hObject, handles);
 
+function cbox_grad_enable_Callback(hObject, ~, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.gradient.enable = val;
+guidata(hObject, handles);
+
+function edit_grad_rate_Callback(hObject, ~, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.grady.rate = val;
+guidata(hObject, handles);
+
+function edit_grad_width_Callback(hObject, ~, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.gradient.width = val;
+guidata(hObject, handles);
+
+function edit_grad_height_Callback(hObject, ~, handles)
+
+str = get(hObject,'String');
+val = eval(str);
+set(hObject, 'String', num2str(val));
+handles.outputsettings.gradient.height = val;
+guidata(hObject, handles);
+
+function edit_grad_filename_Callback(hObject, ~, handles)
+
+str = get(hObject,'String');
+handles.outputsettings.gradient.filename = str;
+guidata(hObject, handles);
+
+function cbox_grad_animation_Callback(hObject, ~, handles)
+
+val = get(hObject, 'Value');
+handles.outputsettings.gradient.animation = val;
+guidata(hObject, handles);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % UI element creation functions, all boilerplate
@@ -1384,6 +1432,22 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 function edit_substeps_CreateFcn(hObject, ~, ~)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_grad_rate_CreateFcn(hObject, ~, ~)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_grad_width_CreateFcn(hObject, ~, ~)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_grad_height_CreateFcn(hObject, ~, ~)
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+function edit_grad_filename_CreateFcn(hObject, ~, ~)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end

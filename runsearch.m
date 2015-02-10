@@ -44,6 +44,7 @@ regime = settings.regime;
 xland = settings.xland;
 yland = settings.yland;
 verbose = settings.verbose;
+showgrad = true;
 
 if verbose
     writelog = @(s) fprintf('[%.2f] %s\n', toc(), s);
@@ -80,6 +81,7 @@ if ~isempty(outputsettings)
         outputsettings.mu.filename = processfilename(outputsettings.mu.filename, outputsettings.mu.animation);
         outputsettings.coverage.filename = processfilename(outputsettings.coverage.filename, outputsettings.coverage.animation);
         outputsettings.mesohyperbolicity.filename = processfilename(outputsettings.mesohyperbolicity.filename, outputsettings.mesohyperbolicity.animation);
+        outputsettings.gradient.filename = processfilename(outputsettings.gradient.filename, outputsettings.gradient.animation);
         
         if ~outputsettings.overwrite
             outputsettings.main.filename = getunusedfilename(outputsettings.main.filename);
@@ -87,8 +89,14 @@ if ~isempty(outputsettings)
             outputsettings.mu.filename = getunusedfilename(outputsettings.mu.filename);
             outputsettings.coverage.filename = getunusedfilename(outputsettings.coverage.filename);
             outputsettings.mesohyperbolicity.filename = getunusedfilename(outputsettings.mesohyperbolicity.filename);
+            outputsettings.gradient.filename = getunusedfilename(outputsettings.gradient.filename);
         end
     end
+end
+
+if showgrad
+    gradfig = figure;
+    axgrad = gca;
 end
 
 % Sample distribution to get particles and targets
@@ -125,7 +133,7 @@ cks = pts2dct(xt, yt, cres, xlim, ylim);
 
 % Misc setup
 lastwarn('');
-fcount = [0, 0, 0, 0, 0];
+fcount = zeros(1, 6);
 t = 0;
 clear lawnmowerstep
 if ~isempty(ax) || ~isempty(outputsettings)
@@ -243,6 +251,11 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
         plotcoverage(ax.coverage, cks, xlim, ylim, cres);
     end
     
+    % Plot gradient
+    if showgrad
+        plotgrad(axgrad, Las.*sks, cres, xlim, ylim);
+    end
+    
     drawnow;
     
     % Save output figures
@@ -254,11 +267,13 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
             @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
             @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
             @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, ...
-            outputsettings.mesohyperbolicity.T, cres)};
+            outputsettings.mesohyperbolicity.T, cres)...
+            @(ax) plotgrad(ax, Las.*sks, cres, xlim, ylim)};
         
         osfigs = {outputsettings.main, outputsettings.convergence, ...
             outputsettings.mu, outputsettings.coverage, ...
-            outputsettings.mesohyperbolicity};
+            outputsettings.mesohyperbolicity, ...
+            outputsettings.gradient};
         
         for i = 1:numel(osfigs)
             os = osfigs{i};
@@ -279,7 +294,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
                         imwrite(imind, map, os.filename, 'DelayTime', 1/30, 'WriteMode', 'append');
                     end
                 else
-                    if ~exist(os.filename, 'file')
+                    if ~exist([pwd, filesep, os.filename], 'file')
                         mkdir(os.filename);
                     end
                     print(outfig, [os.filename, filesep, sprintf('%.3d.png', fcount(i) + 1)], '-dpng');
@@ -294,6 +309,10 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     while paused()
         pause(0.05);
     end
+end
+
+if showgrad
+    close(gradfig);
 end
 
 if ~isempty(ax) || ~isempty(outputsettings)
