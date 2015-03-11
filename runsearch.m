@@ -1,4 +1,4 @@
-function [findtimes, targets, phi2, mur, c, xt, yt] = runsearch(settings, ...
+function [findtimes, targets, phi2, mu, c, xt, yt] = runsearch(settings, ...
     outputsettings, ax, aborthandle, pausebutton)
 %RUNSEARCH Runs a search using the specified algorithm
 %   Returns the time at which each target was found and a vector of the
@@ -9,7 +9,7 @@ function [findtimes, targets, phi2, mur, c, xt, yt] = runsearch(settings, ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 1/19/2015
+% Updated 3/10/15
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tic
@@ -126,10 +126,29 @@ end
 xt = [xti(1, :)*NaN; xti];
 yt = [yti(1, :)*NaN; yti];
 
-% Initialize K arrays and coverage coefficients
-[Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
+% Set up transform type and norm
+tftype = 'dct';
+switch lower(tftype)
+    case 'dct'
+        transform = @(x) dct2(x);
+        itransform = @(x) idct2(x);
+        [Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
+    otherwise
+        error(['Unrecognized transform type: ', tftype]);
+end
 Las = 1./(1 + Kx.^2 + Ky.^2).^(3/2);
-cks = pts2dct(xt, yt, cres, xlim, ylim);
+
+% Initialize coefficients and DSMC surface
+mu = pts2img(mux, muy, cres, xlim, ylim);
+logmu = max(log(max(mu, 0)/lambda), 0);
+logmu = logmu / (sum(logmu(:))/cres^2);
+muks = transform(logmu);
+
+c = pts2img(xt, yt, cres, xlim, ylim);
+cks = transform(c);
+
+sks = cks - muks;
+s = itransform(Las.*sks);
 
 % Misc setup
 lastwarn('');
@@ -166,8 +185,11 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     tary = taryn + tu*rand(size(tarx)).*tdisps;
     [xt, yt] = rk4step(t, h, xt, yt, vx, vy);
     
-    muks0 = pts2dct(mux, muy, mures, xlim, ylim);
-    muks = logmuks(muks0, lambda, cres);
+    % Get coefficients for mu
+    mu = pts2img(mux, muy, cres, xlim, ylim);
+    logmu = max(log(max(mu, 0)/lambda), 0);
+    logmu = logmu / (sum(logmu(:))/cres^2);
+    muks = transform(logmu);
     
     % Get number of agents for this step
     if isempty(regime)
@@ -185,21 +207,22 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     xtn0 = xt(end, 1:nactiveagents);
     ytn0 = yt(end, 1:nactiveagents);
     if any(isnan(xtn0))
-        [xp, yp] = sampledist(idct2(muks0), sum(isnan(xtn0)), ...
+        [xp, yp] = sampledist(mu, sum(isnan(xtn0)), ...
             xlim, ylim, @(n) rand(n, 1));
         xtn0(isnan(xtn0)) = xp';
         ytn0(isnan(ytn0)) = yp';
     end
     
     % Use search algorithm to determine new agent positions
-    if strcmp(algorithm, 'DSMC')
-        [xtn, ytn] = dsmcstep(xtn0, ytn0, h, umax, cks, muks, cres, xlim, ylim, au, spherical);
-    elseif strcmp(algorithm, 'Lawnmower')
-        [xtn, ytn] = lawnmowerstep(xtn0, ytn0, h, umax, xlim, ylim, 3, spherical);
-    elseif strcmp(algorithm, 'Random Walk')
-        [xtn, ytn] = randomwalkstep(xtn0, ytn0, h, umax, xlim, ylim, spherical);
-    else
-        error(['Unrecognized search algorithm: ', algorithm]);
+    switch lower(algorithm)
+        case 'dsmc'
+            [xtn, ytn] = dsmcstep(xtn0, ytn0, h, umax, s, cres, xlim, ylim, au, spherical);
+        case 'lawnmower'
+            [xtn, ytn] = lawnmowerstep(xtn0, ytn0, h, umax, xlim, ylim, 3, spherical);
+        case 'random walk'
+            [xtn, ytn] = randomwalkstep(xtn0, ytn0, h, umax, xlim, ylim, spherical);
+        otherwise
+            error(['Unrecognized search algorithm: ', algorithm]);
     end
     npadding = maxagents - nactiveagents;
     xtn = [xtn, NaN*ones(1, npadding)];
@@ -211,7 +234,9 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     xt = [xt; xtns(2:end, :)];
     yt = [yt; ytns(2:end, :)];
     
-    cks = pts2dct(xt, yt, cres, xlim, ylim);
+    % Get coefficients for coverage
+    c = pts2img(xt, yt, cres, xlim, ylim);
+    cks = dct2(c);
     
     writelog(sprintf('Simulation time: %.02f / %0.2f completed.', t, maxtime));
     
@@ -227,6 +252,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Calculate convergence metric
     sks = cks - muks;
+    s = itransform(Las.*sks);
     phi2(end+1) = sum(sum(Las.*sks.^2));
     
     % Plot particles and trajectories
@@ -243,17 +269,17 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Plot log density of particles
     if isfield(ax, 'mu') && ~isempty(ax.mu)
-        plotmu(ax.mu, muks, xlim, ylim, cres);
+        plotmu(ax.mu, logmu, xlim, ylim, cres);
     end
     
     % Plot trajectory density
     if isfield(ax, 'coverage') &&  ~isempty(ax.coverage)
-        plotcoverage(ax.coverage, cks, xlim, ylim, cres);
+        plotcoverage(ax.coverage, c, xlim, ylim, cres);
     end
     
     % Plot gradient
     if showgrad
-        plotgrad(axgrad, Las.*sks, xlim, ylim, cres);
+        plotgrad(axgrad, s, xlim, ylim, cres);
     end
     
     drawnow;
@@ -264,11 +290,11 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
             @(ax) plotmain(ax, mux, muy, tarx, tary, foundtargets, xt, yt, ...
             ntargets, findradius, xland, yland, xlim, ylim, co, spherical), ...
             @(ax) plotconvergence(ax, phi2), ...
-            @(ax) plotmu(ax, muks, xlim, ylim, cres), ...
-            @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
+            @(ax) plotmu(ax, logmu, xlim, ylim, cres), ...
+            @(ax) plotcoverage(ax, c, xlim, ylim, cres), ...
             @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, ...
             outputsettings.mesohyperbolicity.T, cres)...
-            @(ax) plotgrad(ax, Las.*sks, xlim, ylim, cres)};
+            @(ax) plotgrad(ax, s, xlim, ylim, cres)};
         
         osfigs = {outputsettings.main, outputsettings.convergence, ...
             outputsettings.mu, outputsettings.coverage, ...
@@ -321,7 +347,7 @@ end
 
 targets = ntargets:-1:ntargets-numel(findtimes)+1;
 
-mur = idct2(muks);
+mu = idct2(muks);
 
 c = idct2(cks);
 
@@ -369,9 +395,8 @@ xlabel(ax, 'Steps');
 ylabel(ax, '\phi^2');
 
 
-function plotmu(ax, muks, xlim, ylim, cres)
+function plotmu(ax, mu, xlim, ylim, cres)
 
-mu = idct2(muks);
 mu = [mu, zeros(cres, 1); zeros(1, cres), 0];
 x = linspace(xlim(1), xlim(2), cres+1);
 y = linspace(ylim(1), ylim(2), cres+1);
@@ -383,9 +408,8 @@ title(ax, 'Log(Particle distribution)');
 caxis(ax, sort([0, max(max(mu))]));
 
 
-function plotcoverage(ax, cks, xlim, ylim, cres)
+function plotcoverage(ax, c, xlim, ylim, cres)
 
-c = idct2(cks);
 c = [c, zeros(cres, 1); zeros(1, cres), 0];
 x = linspace(xlim(1), xlim(2), cres+1);
 y = linspace(ylim(1), ylim(2), cres+1);
@@ -413,9 +437,8 @@ caxis(ax, [-2/(T)^2, 6/(T)^2]);
 colorbar('peer', ax, 'EastOutside');
 
 
-function plots(ax, Lasks, xlim, ylim, cres)
+function plots(ax, s, xlim, ylim, cres)
 
-s = idct2(Lasks);
 s = [s, zeros(cres, 1); zeros(1, cres), 0];
 x = linspace(xlim(1), xlim(2), cres+1);
 y = linspace(ylim(1), ylim(2), cres+1);
@@ -427,7 +450,7 @@ title(ax, 'S');
 caxis(ax, [-10, 10]);
 % title(ax, 'DSMC surface');
 
-function plotgrad(ax, Lasks, xlim, ylim, cres)
+function plotgrad(ax, s, xlim, ylim, cres)
 
 x = linspace(xlim(1), xlim(2), 22);
 x = x(2:end-1);
@@ -437,7 +460,7 @@ y = y(2:end-1);
 
 Bdir = @(Bs) -bsxfun(@rdivide, Bs, sqrt(sum((Bs).^2, 1)));
 
-tmp = Bdir(B(xa(:), ya(:), Lasks, cres, xlim, ylim));
+tmp = Bdir(B(xa(:)', ya(:)', s, cres, xlim, ylim));
 u = tmp(1, :);
 v = tmp(2, :);
 

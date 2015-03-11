@@ -1,38 +1,32 @@
-function out = B(xa, ya, Lasks, cres, xlim, ylim)
+function out = B(xa, ya, s, cres, xlim, ylim)
 %B Computes the 'B' vector for each agent 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
 % 5/18/2014
-% Updated 12/18/2014
+% Updated 3/10/2015
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-N = numel(xa);
 
-xa = xa(:)';
-ya = ya(:)';
+dx = diff(xlim)/cres;
+dy = diff(ylim)/cres;
 
-k1 = ((0:cres-1))*pi/diff(xlim)*cres/(cres+1);
-k2 = ((0:cres-1))*pi/diff(ylim)*cres/(cres+1);
-hk = ones(cres)*diff(xlim)*diff(ylim);
-hk(1, :) = hk(1, :) * sqrt(2);
-hk(:, 1) = hk(:, 1) * sqrt(2);
+% Pad the outside of the DSMC surface to make the derivative zero at the 
+% boundaries
+s = [s(1, 1),   s(1, :),   s(1, end);
+     s(:, 1),   s,         s(:, end);
+     s(end, 1), s(end, :), s(end, end)];
+cres = cres + 2;
+xlim = [xlim(1) - dx, xlim(2) + dx];
+ylim = [ylim(1) - dy, ylim(2) + dy];
 
-% Compute sines and cosines
-xoff = diff(xlim)/cres/2;
-yoff = diff(ylim)/cres/2;
-valx = bsxfun(@times, k1', xa - xlim(1) + xoff);
-valy = bsxfun(@times, k2', ya - ylim(1) + yoff);
-cx = cos(valx);
-sx = sin(valx);
-cy = cos(valy);
-sy = sin(valy);
+% Numerical gradient
+[dsdx, dsdy] = gradient(s, dx, dy);
 
-% Combine and sum to get gradient
-out = zeros(2, N);
-for i = 1:N
-    qx = Lasks .* bsxfun(@times, k1, bsxfun(@times, -sx(:, i)', cy(:, i))) ./ hk;
-    qy = Lasks .* bsxfun(@times, k2', bsxfun(@times, cx(:, i)', -sy(:, i))) ./ hk;
-    out(1, i) = sum(qx(:));
-    out(2, i) = sum(qy(:));
-end
+% Get progerly spaced and centered axis vectors
+x = linspace(xlim(1) + dx/2, xlim(2) - dx/2, cres);
+y = linspace(ylim(1) + dy/2, ylim(2) - dy/2, cres);
+
+% Interpolate numerical gradient to get B
+out = [interp2(x, y, dsdx, xa, ya, 'linear', 0); 
+       interp2(x, y, dsdy, xa, ya, 'linear', 0)];

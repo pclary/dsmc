@@ -1,9 +1,8 @@
-function coeffs = pts2dct(x, y, res, xlim, ylim)
-%PTS2DCT Computes the DCT coefficients for the given point data
-
+function bins = pts2img(x, y, res, xlim, ylim)
+%PTS2IMG Converts a set of points to a normalized 2D image matrix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Patrick Clary <pclary@umail.ucsb.edu>
-% 12/19/2014
+% 3/10/15
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Sort points into bins
@@ -17,7 +16,6 @@ bins = hist3([x(:), y(:)], {xbin, ybin})';
 s = sum(sum(bins));
 if s == 0
     bins = bins + 1;
-    s = sum(sum(bins));
+    s = sum(bins(:));
 end
 bins = bins / (s/res^2);
-coeffs = dct2(bins);
