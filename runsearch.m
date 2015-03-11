@@ -123,8 +123,8 @@ if size(regime, 1) > 0
 else
     maxagents = numel(xti);
 end
-xt = [xti*NaN; xti];
-yt = [yti*NaN; yti];
+xt = [xti(1, :)*NaN; xti];
+yt = [yti(1, :)*NaN; yti];
 
 % Initialize K arrays and coverage coefficients
 [Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
@@ -171,7 +171,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Get number of agents for this step
     if isempty(regime)
-        nactiveagents = numel(xti);
+        nactiveagents = numel(xti(1, :));
     else
         iregime = find(regime(:, 1) <= t, 1, 'last');
         if isempty(iregime)
@@ -253,7 +253,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Plot gradient
     if showgrad
-        plotgrad(axgrad, Las.*sks, cres, xlim, ylim);
+        plotgrad(axgrad, Las.*sks, xlim, ylim, cres);
     end
     
     drawnow;
@@ -268,7 +268,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
             @(ax) plotcoverage(ax, cks, xlim, ylim, cres), ...
             @(ax) plotmesohyperbolicity(ax, vx, vy, xlim, ylim, t, ...
             outputsettings.mesohyperbolicity.T, cres)...
-            @(ax) plotgrad(ax, Las.*sks, cres, xlim, ylim)};
+            @(ax) plotgrad(ax, Las.*sks, xlim, ylim, cres)};
         
         osfigs = {outputsettings.main, outputsettings.convergence, ...
             outputsettings.mu, outputsettings.coverage, ...
@@ -413,7 +413,7 @@ caxis(ax, [-2/(T)^2, 6/(T)^2]);
 colorbar('peer', ax, 'EastOutside');
 
 
-function plots(ax, Lasks, cres, xlim, ylim)
+function plots(ax, Lasks, xlim, ylim, cres)
 
 s = idct2(Lasks);
 s = [s, zeros(cres, 1); zeros(1, cres), 0];
@@ -421,10 +421,13 @@ x = linspace(xlim(1), xlim(2), cres+1);
 y = linspace(ylim(1), ylim(2), cres+1);
 [x, y] = meshgrid(x, y);
 surf(ax, x, y, s, 'EdgeColor', 'none');
-title(ax, 'DSMC surface');
+axis(ax, 'equal');
+axis(ax, [xlim, ylim]);
+title(ax, 'S');
+caxis(ax, [-10, 10]);
+% title(ax, 'DSMC surface');
 
-
-function plotgrad(ax, Lasks, cres, xlim, ylim)
+function plotgrad(ax, Lasks, xlim, ylim, cres)
 
 x = linspace(xlim(1), xlim(2), 22);
 x = x(2:end-1);
@@ -441,7 +444,7 @@ v = tmp(2, :);
 quiver(ax, xa(:)', ya(:)', u, v);
 axis(ax, 'equal');
 axis(ax, [xlim, ylim]);
-title(ax, 'DSMC surface gradient');
+title(ax, 'Bdir');
 
 
 function maketitle(ax, t, datetitle, starttime)
