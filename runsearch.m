@@ -127,12 +127,23 @@ xt = [xti(1, :)*NaN; xti];
 yt = [yti(1, :)*NaN; yti];
 
 % Set up transform type and norm
-tftype = 'dct';
+tftype = 'wavelet';
 switch lower(tftype)
     case 'dct'
         transform = @(x) dct2(x);
         itransform = @(x) idct2(x);
         [Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
+    case 'wavelet'
+        niters = ceil(log2(cres) - 1);
+        transform = @(x) fwt2(x, 'db8', niters, 'tensor');
+        itransform = @(x) ifwt2(x, 'db8', niters, 'tensor');
+        K = [];
+        for i = [1, 1:niters]
+            K = [K; (2^i)*ones(2^i, 1)];
+        end
+        K = K*ones(1, cres);
+        Kx = K;
+        Ky = K';
     otherwise
         error(['Unrecognized transform type: ', tftype]);
 end
@@ -236,7 +247,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Get coefficients for coverage
     c = pts2img(xt, yt, cres, xlim, ylim);
-    cks = dct2(c);
+    cks = transform(c);
     
     writelog(sprintf('Simulation time: %.02f / %0.2f completed.', t, maxtime));
     
@@ -279,7 +290,7 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Plot gradient
     if showgrad
-        plotgrad(axgrad, s, xlim, ylim, cres);
+        plots(axgrad, s, xlim, ylim, cres);
     end
     
     drawnow;
@@ -346,10 +357,6 @@ if ~isempty(ax) || ~isempty(outputsettings)
 end
 
 targets = ntargets:-1:ntargets-numel(findtimes)+1;
-
-mu = idct2(muks);
-
-c = idct2(cks);
 
 
 function plotmain(ax, mux, muy, muxtar, muytar, foundtargets, xt, yt, ...
@@ -447,8 +454,7 @@ surf(ax, x, y, s, 'EdgeColor', 'none');
 axis(ax, 'equal');
 axis(ax, [xlim, ylim]);
 title(ax, 'S');
-caxis(ax, [-10, 10]);
-% title(ax, 'DSMC surface');
+title(ax, 'DSMC surface');
 
 function plotgrad(ax, s, xlim, ylim, cres)
 
