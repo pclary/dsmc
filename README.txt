@@ -1,8 +1,9 @@
 Instructions
     Run 'gui.m' in Matlab to start the Search GUI.
-    
+    The wavelet mode currently requires the Large Time-Frequency Analysis Toolbox (LTFAT), available at http://ltfat.sourceforge.net/.
 
 Release Notes:
+    5/10/2015: Added wavelet transform method and alternate DCT method
     1/19/2015: Changed target detection method to be more realistic and account for spherical coordinates
     12/18/2014: Significantly increased computation speed, fixed errors
     9/20/2014: Changed lawnmower to keep track of state separately, fixed distribution uniformity in spherical coordinates

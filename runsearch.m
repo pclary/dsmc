@@ -23,7 +23,6 @@ h = settings.h;
 mu = settings.mu;
 nsamplepts = settings.nsamplepts;
 substeps = settings.substeps;
-mures = settings.mures;
 cres = settings.cres;
 umax = settings.umax;
 algorithm = settings.algorithm;
@@ -127,27 +126,68 @@ xt = [xti(1, :)*NaN; xti];
 yt = [yti(1, :)*NaN; yti];
 
 % Set up transform type and norm
-tftype = 'wavelet';
-switch lower(tftype)
-    case 'dct'
+[Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
+Las2 = 1./(1 + Kx.^2 + Ky.^2).^(3/2);
+
+switch lower(algorithm)
+    case 'dsmc (dct, ^3/2)'
         transform = @(x) dct2(x);
         itransform = @(x) idct2(x);
         [Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
-    case 'wavelet'
+        Las = 1./(1 + Kx.^2 + Ky.^2).^(3/2);
+    case 'dsmc (dct, ^1)'
+        transform = @(x) dct2(x);
+        itransform = @(x) idct2(x);
+        [Kx, Ky] = meshgrid(0:cres-1, 0:cres-1);
+        Las = 1./(1 + Kx.^2 + Ky.^2).^(2/2);
+    case 'dsmc (wavelet)'
         niters = ceil(log2(cres) - 1);
-        transform = @(x) fwt2(x, 'db8', niters, 'tensor');
-        itransform = @(x) ifwt2(x, 'db8', niters, 'tensor');
+        wtype = 'db16';
+        bc = 'per';
+        transform = @(x) fwt(fwt(x,wtype,niters,'dim',1,bc),wtype,niters,'dim',2,bc);
+        itransform = @(x) ifwt(ifwt(x,wtype,niters,cres,'dim',1,bc),wtype,niters,cres,'dim',2,bc);
+        [~, info] = fwt(zeros(cres),wtype,niters,'dim',1,bc);
         K = [];
-        for i = [1, 1:niters]
-            K = [K; (2^i)*ones(2^i, 1)];
+        for i = 1:length(info.Lc)
+            if i == 1
+                scale = cres/2^(niters);
+            else
+                scale = cres/2^(niters+2-i);
+            end
+            K = [K, scale*ones(1, info.Lc(i))];
         end
-        K = K*ones(1, cres);
-        Kx = K;
-        Ky = K';
+        K = ones(length(K), 1)*K;
+        Las = 1./(1 + K.^2 + (K').^2).^(3/2);
+    case 'wavfft'
+        fftscale = 4;
+        niters = ceil(log2(cres) - fftscale);
+        wtype = 'db16';
+        bc = 'even';
+        transform = @(x) wavfft2(x, wtype, niters, bc);
+        itransform = @(x) iwavfft2(x, wtype, niters, bc, cres);
+        [~, info] = fwt(zeros(cres),wtype,niters,'dim',1,bc);
+        K = [];
+        for i = 1:length(info.Lc)
+            if i == 1
+                scale = cres/2^(niters);
+            else
+                scale = cres/2^(niters+2-i);
+            end
+            K = [K, scale*ones(1, info.Lc(i))];
+        end
+        K = ones(length(K), 1)*K;
+        Las = 1./(1 + K.^2 + (K').^2).^(3/2);
+        K2 = (1:info.Lc(1))';
+        K2 = K2 * 2^fftscale / info.Lc(1);
+        K2 = K2*ones(1, info.Lc(1));
+        Las(1:info.Lc(1), 1:info.Lc(1)) = 1./(1 + K2.^2 + (K2').^2).^(3/2);
     otherwise
-        error(['Unrecognized transform type: ', tftype]);
+        %error(['Unrecognized transform type: ', tftype]);
 end
-Las = 1./(1 + Kx.^2 + Ky.^2).^(3/2);
+if length(algorithm) >= 4 && strcmp(algorithm(1:4), 'DSMC')
+    algorithm = 'DSMC';
+end
+    
 
 % Initialize coefficients and DSMC surface
 mu = pts2img(mux, muy, cres, xlim, ylim);
@@ -157,6 +197,10 @@ muks = transform(logmu);
 
 c = pts2img(xt, yt, cres, xlim, ylim);
 cks = transform(c);
+
+keepout = ones(cres);
+kthick = 0;
+keepout(1+kthick:end-kthick, 1+kthick:end-kthick) = 0;
 
 sks = cks - muks;
 s = itransform(Las.*sks);
@@ -247,7 +291,9 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     
     % Get coefficients for coverage
     c = pts2img(xt, yt, cres, xlim, ylim);
-    cks = transform(c);
+    c2 = c + keepout*sqrt(mean(c(c > 0)));
+    c2 = c2 / (sum(c2(:))/cres^2);
+    cks = transform(c2);
     
     writelog(sprintf('Simulation time: %.02f / %0.2f completed.', t, maxtime));
     
@@ -264,7 +310,8 @@ while t < maxtime && (~stopallfound || numel(foundtargets) < ntargets) && ~abort
     % Calculate convergence metric
     sks = cks - muks;
     s = itransform(Las.*sks);
-    phi2(end+1) = sum(sum(Las.*sks.^2));
+    sks2 = dct2(c) - dct2(logmu);
+    phi2(end+1) = sum(sum(Las2.*sks2.^2));
     
     % Plot particles and trajectories
     if isfield(ax, 'main') && ~isempty(ax.main)

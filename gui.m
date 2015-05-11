@@ -86,9 +86,8 @@ settings.ylim = [0, 0.5];
 settings.umax = 1;
 settings.tstop = 50;
 settings.lambda = 0.25;
-settings.algorithm = 'DSMC';
+settings.algorithm = 'DSMC (DCT, ^3/2)';
 settings.spherical = 0;
-settings.mures = 32;
 settings.cres = 128;
 settings.h = 1/100;
 settings.nsamplepts = 10000;
@@ -188,7 +187,6 @@ set(handles.edit_umax, 'String', num2str(settings.umax));
 set(handles.edit_tstop, 'String', num2str(settings.tstop));
 set(handles.edit_lambda, 'String', num2str(settings.lambda));
 set(handles.cbox_spherical, 'Value', settings.spherical);
-set(handles.edit_mures, 'String', num2str(settings.mures));
 set(handles.edit_cres, 'String', num2str(settings.cres));
 set(handles.edit_h, 'String', num2str(settings.h));
 set(handles.edit_nsamplepts, 'String', num2str(settings.nsamplepts));
@@ -655,14 +653,6 @@ str = get(hObject,'String');
 val = eval(str);
 set(hObject, 'String', num2str(val));
 handles.settings.ntargets = val;
-guidata(hObject, handles);
-
-function edit_mures_Callback(hObject, ~, handles)
-
-str = get(hObject,'String');
-val = eval(str);
-set(hObject, 'String', num2str(val));
-handles.settings.mures = val;
 guidata(hObject, handles);
 
 function edit_findradius_Callback(hObject, ~, handles)
@@ -1203,11 +1193,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 function edit_ntargets_CreateFcn(hObject, ~, ~)
-
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-function edit_mures_CreateFcn(hObject, ~, ~)
 
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
